@@ -1,8 +1,9 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
-import { Bookmark, FileSearch, Radio, Search } from "lucide-react";
+import { Bookmark, FileSearch, MapPin, Radio, Search } from "lucide-react";
 import { EstadoBadge, ScoreBadge } from "@/components/dashboard/ui";
+import { LicitacionModal } from "@/components/dashboard/licitacion-modal";
 import { toggleSavedAction } from "@/lib/actions/saved";
 import {
   diasRestantes,
@@ -25,7 +26,9 @@ export function LicitacionesClient({
 }) {
   const [q, setQ] = useState("");
   const [tipo, setTipo] = useState<(typeof tipos)[number]>("Todas");
+  const [region, setRegion] = useState("Todas");
   const [soloPublicadas, setSoloPublicadas] = useState(false);
+  const [selected, setSelected] = useState<Licitacion | null>(null);
   const [, startTransition] = useTransition();
   const [saved, setSaved] = useState<Record<string, boolean>>(
     Object.fromEntries(savedCodes.map((c) => [c, true]))
@@ -38,9 +41,17 @@ export function LicitacionesClient({
     });
   };
 
+  // Regiones presentes en los datos (para el filtro).
+  const regiones = useMemo(() => {
+    const set = new Set<string>();
+    data.forEach((l) => l.region && l.region !== "—" && set.add(l.region));
+    return ["Todas", ...Array.from(set).sort()];
+  }, [data]);
+
   const rows = useMemo(() => {
     return data
       .filter((l) => (tipo === "Todas" ? true : l.tipo === tipo))
+      .filter((l) => (region === "Todas" ? true : l.region === region))
       .filter((l) => (soloPublicadas ? l.estado === "Publicada" : true))
       .filter((l) => {
         const t = q.toLowerCase();
@@ -53,7 +64,7 @@ export function LicitacionesClient({
         );
       })
       .sort((a, b) => b.score - a.score);
-  }, [data, q, tipo, soloPublicadas]);
+  }, [data, q, tipo, region, soloPublicadas]);
 
   return (
     <div>
@@ -87,6 +98,25 @@ export function LicitacionesClient({
             className="w-full rounded-lg border border-line bg-surface py-2 pl-10 pr-3 text-sm text-ink placeholder:text-muted focus:border-brand-400 focus:bg-card focus:outline-none focus:ring-2 focus:ring-brand-100"
           />
         </div>
+        {regiones.length > 1 && (
+          <div className="relative">
+            <MapPin
+              size={16}
+              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted"
+            />
+            <select
+              value={region}
+              onChange={(e) => setRegion(e.target.value)}
+              className="appearance-none rounded-lg border border-line bg-surface py-2 pl-9 pr-8 text-sm font-medium text-ink focus:border-brand-400 focus:bg-card focus:outline-none focus:ring-2 focus:ring-brand-100"
+            >
+              {regiones.map((r) => (
+                <option key={r} value={r}>
+                  {r === "Todas" ? "Todas las regiones" : r}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
         <div className="flex flex-wrap gap-2">
           {tipos.map((t) => (
             <button
@@ -132,7 +162,11 @@ export function LicitacionesClient({
             {rows.map((l) => {
               const dias = diasRestantes(l.cierre);
               return (
-                <tr key={l.id} className="hover:bg-surface/60">
+                <tr
+                  key={l.id}
+                  onClick={() => setSelected(l)}
+                  className="cursor-pointer hover:bg-surface/60"
+                >
                   <td className="px-4 py-3">
                     <ScoreBadge score={l.score} />
                   </td>
@@ -161,7 +195,10 @@ export function LicitacionesClient({
                   <td className="px-4 py-3">
                     <div className="flex items-center justify-end gap-1">
                       <button
-                        onClick={() => toggle(l)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggle(l);
+                        }}
                         className="grid h-8 w-8 place-items-center rounded-lg hover:bg-surface"
                         aria-label="Guardar"
                       >
@@ -174,7 +211,14 @@ export function LicitacionesClient({
                           }
                         />
                       </button>
-                      <button className="grid h-8 w-8 place-items-center rounded-lg text-muted hover:bg-surface hover:text-brand-600" aria-label="Analizar">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelected(l);
+                        }}
+                        className="grid h-8 w-8 place-items-center rounded-lg text-muted hover:bg-surface hover:text-brand-600"
+                        aria-label="Ver detalle"
+                      >
                         <FileSearch size={17} />
                       </button>
                     </div>
@@ -189,10 +233,20 @@ export function LicitacionesClient({
       {/* Cards (móvil) */}
       <div className="space-y-3 lg:hidden">
         {rows.map((l) => (
-          <div key={l.id} className="rounded-2xl border border-line bg-card p-4">
+          <div
+            key={l.id}
+            onClick={() => setSelected(l)}
+            className="cursor-pointer rounded-2xl border border-line bg-card p-4"
+          >
             <div className="flex items-start justify-between gap-3">
               <ScoreBadge score={l.score} />
-              <button onClick={() => toggle(l)} aria-label="Guardar">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggle(l);
+                }}
+                aria-label="Guardar"
+              >
                 <Bookmark
                   size={18}
                   className={
@@ -223,6 +277,13 @@ export function LicitacionesClient({
           <p className="text-sm text-muted">No hay resultados para tu búsqueda.</p>
         </div>
       )}
+
+      <LicitacionModal
+        licitacion={selected}
+        saved={selected ? !!saved[selected.codigo] : false}
+        onToggleSaved={toggle}
+        onClose={() => setSelected(null)}
+      />
     </div>
   );
 }

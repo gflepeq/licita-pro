@@ -150,7 +150,8 @@ async function fetchLicitaciones(deadline: number): Promise<Licitacion[]> {
     let monto = 0;
     let cierre = parseFecha(base.FechaCierre);
     let estado = mapEstado(base.CodigoEstado, base.Estado);
-    let tipo: Licitacion["tipo"] = "Licitación";
+    const tipo: Licitacion["tipo"] = "Licitación";
+    let descripcion = "";
 
     const det = await fetchDetail(
       `${BASE}/licitaciones.json?codigo=${encodeURIComponent(codigo)}&ticket=${TICKET}`
@@ -162,6 +163,7 @@ async function fetchLicitaciones(deadline: number): Promise<Licitacion[]> {
       monto = Number(d.MontoEstimado) || 0;
       cierre = parseFecha(d.Fechas?.FechaCierre ?? d.FechaCierre) || cierre;
       estado = mapEstado(d.CodigoEstado, d.Estado);
+      descripcion = String(d.Descripcion ?? "").trim();
     }
 
     out.push({
@@ -178,6 +180,7 @@ async function fetchLicitaciones(deadline: number): Promise<Licitacion[]> {
       score: 0,
       categoria: "Licitación pública",
       guardada: false,
+      descripcion,
     });
     await sleep(ENRICH_DELAY_MS);
   }
@@ -210,6 +213,7 @@ async function fetchComprasAgiles(deadline: number): Promise<Licitacion[]> {
     let region = "—";
     let monto = 0;
     let fecha = "";
+    let descripcion = "";
 
     const det = await fetchDetail(
       `${BASE}/ordenesdecompra.json?codigo=${encodeURIComponent(codigo)}&ticket=${TICKET}`
@@ -220,6 +224,7 @@ async function fetchComprasAgiles(deadline: number): Promise<Licitacion[]> {
       region = cleanRegion(d.Comprador?.RegionUnidad);
       monto = Number(d.Total) || 0;
       fecha = parseFecha(d.Fechas?.FechaEnvio ?? d.Fechas?.FechaCreacion);
+      descripcion = String(d.Descripcion ?? "").trim();
     }
 
     out.push({
@@ -236,6 +241,7 @@ async function fetchComprasAgiles(deadline: number): Promise<Licitacion[]> {
       score: 0,
       categoria: "Compra Ágil",
       guardada: false,
+      descripcion,
     });
     await sleep(ENRICH_DELAY_MS);
   }

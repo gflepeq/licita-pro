@@ -18,6 +18,7 @@ export interface Licitacion {
   score: number; // 0-100 relevancia IA
   categoria: string;
   guardada: boolean;
+  descripcion?: string; // detalle de la licitación/compra ágil
 }
 
 export const fmtCLP = (n: number) =>
