@@ -1,12 +1,13 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowUpRight, Bell, Bookmark, Clock, Radio, Sparkles, Trophy } from "lucide-react";
-import { PageHeader, ScoreBadge, StatCard } from "@/components/dashboard/ui";
+import { ArrowUpRight, Bell, Bookmark, Clock, Radio, Sparkles } from "lucide-react";
+import { PageHeader, StatCard } from "@/components/dashboard/ui";
 import { CategoriaChart, DeteccionChart } from "@/components/dashboard/charts";
+import { TopRelevantes } from "@/components/dashboard/top-relevantes";
 import { currentUser } from "@/lib/current-user";
 import { getLicitaciones } from "@/lib/mercadopublico";
 import { listSavedCodes } from "@/lib/db";
-import { diasRestantes, fmtCLP, fmtFecha, stats } from "@/lib/data";
+import { diasRestantes, stats } from "@/lib/data";
 
 // El enriquecimiento de la API puede tardar; ampliamos el límite en Vercel.
 export const maxDuration = 60;
@@ -111,40 +112,7 @@ export default async function DashboardHome() {
             Ver todas <ArrowUpRight size={15} />
           </Link>
         </div>
-        <ul className="divide-y divide-line">
-          {topRelevantes.map((l) => {
-            const dias = l.cierre ? diasRestantes(l.cierre) : null;
-            return (
-              <li
-                key={l.id}
-                className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between"
-              >
-                <div className="flex items-start gap-3">
-                  <ScoreBadge score={l.score} />
-                  <div>
-                    <p className="font-medium text-ink">{l.nombre}</p>
-                    <p className="mt-0.5 text-sm text-muted">
-                      {l.organismo} · {l.codigo}
-                      {l.region !== "—" ? ` · ${l.region}` : ""}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-6 pl-12 sm:pl-0">
-                  <div className="text-right">
-                    <p className="text-sm font-semibold text-ink">
-                      {l.monto > 0 ? fmtCLP(l.monto) : "—"}
-                    </p>
-                    {dias !== null && (
-                      <p className={`text-xs ${dias <= 3 ? "text-red-600" : "text-muted"}`}>
-                        Cierra {fmtFecha(l.cierre)} · {dias}d
-                      </p>
-                    )}
-                  </div>
-                </div>
-              </li>
-            );
-          })}
-        </ul>
+        <TopRelevantes items={topRelevantes} savedCodes={saved} />
       </div>
     </div>
   );
