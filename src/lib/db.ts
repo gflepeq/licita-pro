@@ -124,7 +124,12 @@ export function isAdminEmail(email: string): boolean {
     .map((x) => x.trim())
     .filter(Boolean);
   if (env.length) return env.includes(email.toLowerCase());
-  return email.toLowerCase() === "demo@licitapro.cl";
+  // Modo demo: el email demo es admin SOLO fuera de producción.
+  // En producción, los admins se definen por rol en DB o por ADMIN_EMAILS.
+  return (
+    process.env.NODE_ENV !== "production" &&
+    email.toLowerCase() === "demo@licitapro.cl"
+  );
 }
 
 export interface UserProfile {
