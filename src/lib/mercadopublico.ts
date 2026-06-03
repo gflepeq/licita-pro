@@ -88,6 +88,13 @@ function cleanRegion(r: unknown): string {
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
+// Normaliza texto para búsqueda (minúsculas, sin acentos).
+const norm = (s: string) =>
+  s
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "");
+
 async function fetchJson(url: string, timeoutMs = 6000): Promise<any | null> {
   try {
     const controller = new AbortController();
@@ -131,14 +138,16 @@ interface MpListItem {
 }
 
 // ---- Enriquecimiento: licitaciones ----
-async function fetchLicitaciones(deadline: number): Promise<Licitacion[]> {
+async function fetchLicitaciones(deadline: number, query?: string): Promise<Licitacion[]> {
   const list = await fetchJson(`${BASE}/licitaciones.json?ticket=${TICKET}`);
   const listado: MpListItem[] = list?.Listado ?? [];
   if (!Array.isArray(listado) || listado.length === 0) return [];
 
+  const q = query ? norm(query) : "";
   // Prioriza las que parecen abiertas (estado 5) para enriquecer primero.
   const ordered = [...listado]
     .filter((x) => x.CodigoExterno && x.Nombre)
+    .filter((x) => (q ? norm(String(x.Nombre)).includes(q) : true))
     .sort((a, b) => (a.CodigoEstado === 5 ? -1 : 0) - (b.CodigoEstado === 5 ? -1 : 0));
 
   const out: Licitacion[] = [];
@@ -189,14 +198,15 @@ async function fetchLicitaciones(deadline: number): Promise<Licitacion[]> {
 }
 
 // ---- Enriquecimiento: compras ágiles (órdenes de compra con código -AG) ----
-async function fetchComprasAgiles(deadline: number): Promise<Licitacion[]> {
+async function fetchComprasAgiles(deadline: number, query?: string): Promise<Licitacion[]> {
   const list = await fetchJson(`${BASE}/ordenesdecompra.json?ticket=${TICKET}`);
   const listado: MpListItem[] = list?.Listado ?? [];
   if (!Array.isArray(listado) || listado.length === 0) return [];
 
-  const agiles = listado.filter(
-    (x) => x.Codigo && /-AG\d+$/i.test(String(x.Codigo)) && x.Nombre
-  );
+  const q = query ? norm(query) : "";
+  const agiles = listado
+    .filter((x) => x.Codigo && /-AG\d+$/i.test(String(x.Codigo)) && x.Nombre)
+    .filter((x) => (q ? norm(String(x.Nombre)).includes(q) : true));
 
   const out: Licitacion[] = [];
   for (let i = 0; i < agiles.length && out.length < AGIL_ENRICH; i++) {
@@ -279,27 +289,47 @@ async function getRawOpportunities(): Promise<Licitacion[]> {
   }
 }
 
-function demoFor(rubros: string[]): Licitacion[] {
+function demoFor(rubros: string[], query?: string): Licitacion[] {
+  const q = query ? norm(query) : "";
   return mockLicitaciones
+    .filter((l) =>
+      q ? norm(`${l.nombre} ${l.organismo} ${l.categoria}`).includes(q) : true
+    )
     .map((l) => ({ ...l, score: scoreFor(l.nombre + " " + l.categoria, rubros, l.codigo) }))
     .sort((a, b) => b.score - a.score);
 }
 
-export async function getLicitaciones(rubros: string[]): Promise<LicitacionesResult> {
+// Búsqueda en vivo sobre toda la lista del día (sin caché; enriquece coincidencias).
+async function searchLive(query: string): Promise<Licitacion[]> {
+  const deadline = Date.now() + TIME_BUDGET_MS;
+  const lic = await fetchLicitaciones(deadline, query);
+  const agil = await fetchComprasAgiles(deadline, query);
+  return [...lic, ...agil];
+}
+
+export async function getLicitaciones(
+  rubros: string[],
+  query?: string
+): Promise<LicitacionesResult> {
   const fetchedAt = new Date().toISOString();
+  const q = query?.trim();
 
   if (!TICKET) {
-    return { items: demoFor(rubros), source: "demo", fetchedAt, note: "Sin ticket de API configurado." };
+    return { items: demoFor(rubros, q), source: "demo", fetchedAt, note: "Sin ticket de API configurado." };
   }
 
   let raw: Licitacion[] = [];
   try {
-    raw = await getRawOpportunities();
+    raw = q ? await searchLive(q) : await getRawOpportunities();
   } catch {
     raw = [];
   }
 
   if (raw.length === 0) {
+    if (q) {
+      // Búsqueda sin coincidencias: resultado vacío (no mezclar con demo).
+      return { items: [], source: "live", fetchedAt, note: "Sin resultados para tu búsqueda." };
+    }
     return {
       items: demoFor(rubros),
       source: "demo",

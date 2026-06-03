@@ -6,14 +6,26 @@ import { redirect } from "next/navigation";
 
 export const maxDuration = 60;
 
-export default async function LicitacionesPage() {
+export default async function LicitacionesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string }>;
+}) {
   const user = await currentUser();
   if (!user) redirect("/login");
 
-  const { items, source } = await getLicitaciones(user.rubros);
+  const { q } = await searchParams;
+  const query = (q ?? "").trim();
+
+  const { items, source } = await getLicitaciones(user.rubros, query);
   const savedCodes = await listSavedCodes(user.id);
 
   return (
-    <LicitacionesClient data={items} savedCodes={savedCodes} source={source} />
+    <LicitacionesClient
+      data={items}
+      savedCodes={savedCodes}
+      source={source}
+      query={query}
+    />
   );
 }

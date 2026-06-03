@@ -1,7 +1,8 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
-import { Bookmark, FileSearch, MapPin, Radio, Search } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Bookmark, FileSearch, Loader2, MapPin, Radio, Search, X } from "lucide-react";
 import { EstadoBadge, ScoreBadge } from "@/components/dashboard/ui";
 import { LicitacionModal } from "@/components/dashboard/licitacion-modal";
 import { toggleSavedAction } from "@/lib/actions/saved";
@@ -19,20 +20,31 @@ export function LicitacionesClient({
   data,
   savedCodes,
   source,
+  query,
 }: {
   data: Licitacion[];
   savedCodes: string[];
   source: "live" | "demo";
+  query: string;
 }) {
-  const [q, setQ] = useState("");
+  const router = useRouter();
+  const [term, setTerm] = useState(query);
   const [tipo, setTipo] = useState<(typeof tipos)[number]>("Todas");
   const [region, setRegion] = useState("Todas");
   const [soloPublicadas, setSoloPublicadas] = useState(false);
   const [selected, setSelected] = useState<Licitacion | null>(null);
-  const [, startTransition] = useTransition();
+  const [pending, startTransition] = useTransition();
   const [saved, setSaved] = useState<Record<string, boolean>>(
     Object.fromEntries(savedCodes.map((c) => [c, true]))
   );
+
+  // Búsqueda en vivo: navega con ?q= (la página re-consulta Mercado Público).
+  const buscar = (value: string) => {
+    const v = value.trim();
+    startTransition(() => {
+      router.push(v ? `/dashboard/licitaciones?q=${encodeURIComponent(v)}` : "/dashboard/licitaciones");
+    });
+  };
 
   const toggle = (l: Licitacion) => {
     setSaved((s) => ({ ...s, [l.codigo]: !s[l.codigo] }));
@@ -53,18 +65,8 @@ export function LicitacionesClient({
       .filter((l) => (tipo === "Todas" ? true : l.tipo === tipo))
       .filter((l) => (region === "Todas" ? true : l.region === region))
       .filter((l) => (soloPublicadas ? l.estado === "Publicada" : true))
-      .filter((l) => {
-        const t = q.toLowerCase();
-        return (
-          !t ||
-          l.nombre.toLowerCase().includes(t) ||
-          l.organismo.toLowerCase().includes(t) ||
-          l.codigo.toLowerCase().includes(t) ||
-          l.categoria.toLowerCase().includes(t)
-        );
-      })
       .sort((a, b) => b.score - a.score);
-  }, [data, q, tipo, region, soloPublicadas]);
+  }, [data, tipo, region, soloPublicadas]);
 
   return (
     <div>
@@ -81,23 +83,54 @@ export function LicitacionesClient({
         )}
       </div>
       <p className="mb-6 text-sm text-muted">
-        {rows.length} oportunidades ordenadas por relevancia para tu perfil.
+        {query
+          ? `${rows.length} resultado${rows.length === 1 ? "" : "s"} para “${query}”`
+          : `${rows.length} oportunidades ordenadas por relevancia para tu perfil.`}
       </p>
 
       {/* Filtros */}
       <div className="mb-5 flex flex-col gap-3 rounded-2xl border border-line bg-card p-4 sm:flex-row sm:items-center">
-        <div className="relative flex-1">
-          <Search
-            size={18}
-            className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted"
-          />
-          <input
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            placeholder="Buscar por nombre, organismo, código o rubro…"
-            className="w-full rounded-lg border border-line bg-surface py-2 pl-10 pr-3 text-sm text-ink placeholder:text-muted focus:border-brand-400 focus:bg-card focus:outline-none focus:ring-2 focus:ring-brand-100"
-          />
-        </div>
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            buscar(term);
+          }}
+          className="flex flex-1 gap-2"
+        >
+          <div className="relative flex-1">
+            <Search
+              size={18}
+              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted"
+            />
+            <input
+              value={term}
+              onChange={(e) => setTerm(e.target.value)}
+              placeholder="Buscar en Mercado Público (ej. web, aseo, luminarias)…"
+              className="w-full rounded-lg border border-line bg-surface py-2 pl-10 pr-9 text-sm text-ink placeholder:text-muted focus:border-brand-400 focus:bg-card focus:outline-none focus:ring-2 focus:ring-brand-100"
+            />
+            {query && (
+              <button
+                type="button"
+                onClick={() => {
+                  setTerm("");
+                  buscar("");
+                }}
+                className="absolute right-2 top-1/2 grid h-6 w-6 -translate-y-1/2 place-items-center rounded text-muted hover:bg-line hover:text-ink"
+                aria-label="Limpiar búsqueda"
+              >
+                <X size={15} />
+              </button>
+            )}
+          </div>
+          <button
+            type="submit"
+            disabled={pending}
+            className="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-60"
+          >
+            {pending ? <Loader2 size={16} className="animate-spin" /> : <Search size={16} />}
+            Buscar
+          </button>
+        </form>
         {regiones.length > 1 && (
           <div className="relative">
             <MapPin

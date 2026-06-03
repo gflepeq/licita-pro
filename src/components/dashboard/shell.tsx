@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Bell, Menu, Search, X } from "lucide-react";
 import { Sidebar } from "./sidebar";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -14,6 +15,8 @@ export function DashboardShell({
   children: React.ReactNode;
 }) {
   const [open, setOpen] = useState(false);
+  const [term, setTerm] = useState("");
+  const router = useRouter();
 
   return (
     <div className="min-h-screen bg-surface dark:bg-slate-950">
@@ -50,18 +53,27 @@ export function DashboardShell({
             <Menu size={20} />
           </button>
 
-          <div className="flex flex-1 items-center">
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              const v = term.trim();
+              if (v) router.push(`/dashboard/licitaciones?q=${encodeURIComponent(v)}`);
+            }}
+            className="flex flex-1 items-center"
+          >
             <div className="relative w-full max-w-md">
               <Search
                 size={18}
                 className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted"
               />
               <input
-                placeholder="Buscar licitaciones, organismos, rubros…"
+                value={term}
+                onChange={(e) => setTerm(e.target.value)}
+                placeholder="Buscar licitaciones y compras ágiles…"
                 className="w-full rounded-lg border border-line bg-surface py-2 pl-10 pr-3 text-sm text-ink placeholder:text-muted focus:border-brand-400 focus:bg-card focus:outline-none focus:ring-2 focus:ring-brand-100 dark:bg-slate-800"
               />
             </div>
-          </div>
+          </form>
 
           <ThemeToggle />
           <button className="relative grid h-9 w-9 place-items-center rounded-lg text-muted hover:bg-surface hover:text-ink">
