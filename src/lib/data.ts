@@ -20,6 +20,7 @@ export interface Licitacion {
   guardada: boolean;
   descripcion?: string; // detalle de la licitación/compra ágil
   rubrosMatch?: string[]; // rubros del usuario con los que coincide
+  garantia?: string; // tipo de garantía (pendiente: API de Compra Ágil/beta)
 }
 
 export const fmtCLP = (n: number) =>
