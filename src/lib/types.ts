@@ -8,4 +8,5 @@ export interface SafeUser {
   appName: string;
   accent: string;
   theme: "light" | "dark";
+  isAdmin: boolean;
 }

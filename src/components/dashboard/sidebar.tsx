@@ -10,6 +10,7 @@ import {
   ListChecks,
   LogOut,
   Settings,
+  Shield,
   Trophy,
 } from "lucide-react";
 import { Logo } from "@/components/logo";
@@ -70,6 +71,8 @@ export function Sidebar({
         {links.map(item)}
         <div className="my-3 border-t border-line" />
         {bottom.map(item)}
+        {user.isAdmin &&
+          item({ href: "/admin", label: "Super Admin", icon: Shield })}
       </nav>
 
       <div className="rounded-xl bg-brand-50 p-4 dark:bg-brand-950/40">

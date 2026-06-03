@@ -41,8 +41,22 @@ const SCHEMA: string[] = [
     empresa TEXT NOT NULL DEFAULT '',
     rut TEXT NOT NULL DEFAULT '',
     plan TEXT NOT NULL DEFAULT 'Trial',
+    role TEXT NOT NULL DEFAULT 'user',
     onboarded INTEGER NOT NULL DEFAULT 0,
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  )`,
+  `CREATE TABLE IF NOT EXISTS payments (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    plan TEXT NOT NULL,
+    monto INTEGER NOT NULL,
+    estado TEXT NOT NULL DEFAULT 'pagado',
+    metodo TEXT NOT NULL DEFAULT 'Webpay',
+    fecha TEXT NOT NULL DEFAULT (datetime('now'))
+  )`,
+  `CREATE TABLE IF NOT EXISTS app_config (
+    clave TEXT PRIMARY KEY,
+    valor TEXT NOT NULL DEFAULT ''
   )`,
   `CREATE TABLE IF NOT EXISTS settings (
     user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
@@ -72,6 +86,10 @@ function ready(): Promise<Client> {
     g.__libsqlReady = (async () => {
       const c = await getClient();
       for (const stmt of SCHEMA) await c.execute(stmt);
+      // Migraciones para bases existentes (ignora si la columna ya existe).
+      try {
+        await c.execute("ALTER TABLE users ADD COLUMN role TEXT NOT NULL DEFAULT 'user'");
+      } catch {}
       return c;
     })();
   }
@@ -92,8 +110,21 @@ export interface UserRow {
   empresa: string;
   rut: string;
   plan: string;
+  role: string;
   onboarded: number;
   created_at: string;
+}
+
+// Admin si el rol es 'admin' o el email está en ADMIN_EMAILS.
+// Sin ADMIN_EMAILS configurado (modo demo), el email demo es admin.
+export function isAdminEmail(email: string): boolean {
+  const env = (process.env.ADMIN_EMAILS || "")
+    .toLowerCase()
+    .split(",")
+    .map((x) => x.trim())
+    .filter(Boolean);
+  if (env.length) return env.includes(email.toLowerCase());
+  return email.toLowerCase() === "demo@licitapro.cl";
 }
 
 export interface UserProfile {
@@ -104,6 +135,8 @@ export interface UserProfile {
   rut: string;
   plan: string;
   onboarded: boolean;
+  role: string;
+  isAdmin: boolean;
   iniciales: string;
   rubros: string[];
   regiones: string[];
@@ -137,9 +170,15 @@ export async function createUser(input: {
   nombre: string;
   empresa?: string;
 }): Promise<number> {
+  // Primer usuario del sistema o emails de ADMIN_EMAILS → rol admin.
+  const total = n(
+    (await run("SELECT COUNT(*) AS c FROM users")).rows[0]?.c
+  );
+  const role =
+    total === 0 || isAdminEmail(input.email) ? "admin" : "user";
   const r = await run(
-    "INSERT INTO users (email, password_hash, nombre, empresa) VALUES (?, ?, ?, ?)",
-    [input.email.toLowerCase(), input.passwordHash, input.nombre, input.empresa ?? ""]
+    "INSERT INTO users (email, password_hash, nombre, empresa, role) VALUES (?, ?, ?, ?, ?)",
+    [input.email.toLowerCase(), input.passwordHash, input.nombre, input.empresa ?? "", role]
   );
   const userId = Number(r.lastInsertRowid);
   await run("INSERT INTO settings (user_id) VALUES (?)", [userId]);
@@ -174,6 +213,8 @@ export async function getProfile(userId: number): Promise<UserProfile | null> {
     rut: s(u.rut),
     plan: s(u.plan),
     onboarded: n(u.onboarded) === 1,
+    role: s(u.role) || "user",
+    isAdmin: s(u.role) === "admin" || isAdminEmail(s(u.email)),
     iniciales: iniciales || "U",
     rubros: JSON.parse(s(sr.rubros) || "[]") as string[],
     regiones: JSON.parse(s(sr.regiones) || "[]") as string[],
@@ -281,4 +322,157 @@ export async function toggleSaved(
     JSON.stringify(data),
   ]);
   return true;
+}
+
+// ===================== ADMIN =====================
+export interface AdminUser {
+  id: number;
+  email: string;
+  nombre: string;
+  empresa: string;
+  plan: string;
+  role: string;
+  onboarded: boolean;
+  guardadas: number;
+  createdAt: string;
+}
+
+export async function listUsers(): Promise<AdminUser[]> {
+  const r = await run(
+    `SELECT u.id, u.email, u.nombre, u.empresa, u.plan, u.role, u.onboarded, u.created_at,
+            (SELECT COUNT(*) FROM saved sv WHERE sv.user_id = u.id) AS guardadas
+     FROM users u ORDER BY u.id DESC`
+  );
+  return r.rows.map((row) => {
+    const o = row as Row;
+    return {
+      id: n(o.id),
+      email: s(o.email),
+      nombre: s(o.nombre),
+      empresa: s(o.empresa),
+      plan: s(o.plan),
+      role: s(o.role) || "user",
+      onboarded: n(o.onboarded) === 1,
+      guardadas: n(o.guardadas),
+      createdAt: s(o.created_at),
+    };
+  });
+}
+
+export async function adminStats() {
+  const totalUsers = n((await run("SELECT COUNT(*) AS c FROM users")).rows[0]?.c);
+  const onboarded = n(
+    (await run("SELECT COUNT(*) AS c FROM users WHERE onboarded = 1")).rows[0]?.c
+  );
+  const guardadas = n((await run("SELECT COUNT(*) AS c FROM saved")).rows[0]?.c);
+  const porPlan = (
+    await run("SELECT plan, COUNT(*) AS c FROM users GROUP BY plan")
+  ).rows.map((r) => ({ plan: s((r as Row).plan), total: n((r as Row).c) }));
+  const recaudado = n(
+    (await run("SELECT COALESCE(SUM(monto),0) AS t FROM payments WHERE estado='pagado'")).rows[0]?.t
+  );
+  return { totalUsers, onboarded, guardadas, porPlan, recaudado };
+}
+
+export async function setUserPlan(userId: number, plan: string) {
+  await run("UPDATE users SET plan = ? WHERE id = ?", [plan, userId]);
+}
+
+export async function setUserRole(userId: number, role: string) {
+  await run("UPDATE users SET role = ? WHERE id = ?", [
+    role === "admin" ? "admin" : "user",
+    userId,
+  ]);
+}
+
+export interface Pago {
+  id: number;
+  usuario: string;
+  email: string;
+  plan: string;
+  monto: number;
+  estado: string;
+  metodo: string;
+  fecha: string;
+}
+
+export async function listPayments(): Promise<Pago[]> {
+  const r = await run(
+    `SELECT p.id, p.plan, p.monto, p.estado, p.metodo, p.fecha,
+            u.nombre AS usuario, u.email
+     FROM payments p JOIN users u ON u.id = p.user_id
+     ORDER BY p.fecha DESC LIMIT 200`
+  );
+  return r.rows.map((row) => {
+    const o = row as Row;
+    return {
+      id: n(o.id),
+      usuario: s(o.usuario),
+      email: s(o.email),
+      plan: s(o.plan),
+      monto: n(o.monto),
+      estado: s(o.estado),
+      metodo: s(o.metodo),
+      fecha: s(o.fecha),
+    };
+  });
+}
+
+export async function paymentStats() {
+  const total = n(
+    (await run("SELECT COALESCE(SUM(monto),0) AS t FROM payments WHERE estado='pagado'")).rows[0]?.t
+  );
+  const cantidad = n((await run("SELECT COUNT(*) AS c FROM payments")).rows[0]?.c);
+  const pagados = n(
+    (await run("SELECT COUNT(*) AS c FROM payments WHERE estado='pagado'")).rows[0]?.c
+  );
+  return { total, cantidad, pagados };
+}
+
+// Genera pagos de ejemplo si la tabla está vacía (datos ilustrativos).
+export async function seedPaymentsIfEmpty() {
+  const c = n((await run("SELECT COUNT(*) AS c FROM payments")).rows[0]?.c);
+  if (c > 0) return;
+  const precios: Record<string, number> = {
+    Trial: 4990,
+    "Plan Detecta": 14990,
+    "Plan Gana": 34990,
+    Gana: 34990,
+  };
+  const users = await run("SELECT id, plan FROM users");
+  for (const row of users.rows) {
+    const o = row as Row;
+    const plan = s(o.plan);
+    const monto = precios[plan] ?? 4990;
+    // 1-3 pagos por usuario en meses recientes
+    const nPagos = 1 + (n(o.id) % 3);
+    for (let m = 0; m < nPagos; m++) {
+      await run(
+        `INSERT INTO payments (user_id, plan, monto, estado, metodo, fecha)
+         VALUES (?, ?, ?, 'pagado', ?, datetime('now', ?))`,
+        [n(o.id), plan, monto, m % 2 ? "Webpay" : "Transferencia", `-${m} months`]
+      );
+    }
+  }
+}
+
+// ---------- Config global ----------
+export async function getConfig(): Promise<Record<string, string>> {
+  const r = await run("SELECT clave, valor FROM app_config");
+  const out: Record<string, string> = {};
+  r.rows.forEach((row) => {
+    const o = row as Row;
+    out[s(o.clave)] = s(o.valor);
+  });
+  return out;
+}
+
+export async function setConfig(entries: Record<string, string>) {
+  for (const [clave, valor] of Object.entries(entries)) {
+    await run(
+      `INSERT INTO app_config (clave, valor) VALUES (?, ?)
+       ON CONFLICT(clave) DO UPDATE SET valor = excluded.valor`,
+      [clave, valor]
+    );
+  }
 }
