@@ -28,7 +28,7 @@ export async function onboardingAction(
   if (regiones.length === 0)
     return { error: "Selecciona al menos una región." };
 
-  completeOnboarding(uid, { empresa, rut, rubros, regiones });
+  await completeOnboarding(uid, { empresa, rut, rubros, regiones });
   redirect("/dashboard");
 }
 
@@ -46,7 +46,7 @@ export async function updateProfileAction(
   if (!nombre || !empresa)
     return { error: "Nombre y empresa son obligatorios." };
 
-  updateProfile(uid, { nombre, empresa, rut, rubros, regiones });
+  await updateProfile(uid, { nombre, empresa, rut, rubros, regiones });
   revalidatePath("/dashboard", "layout");
   return { ok: true };
 }
@@ -56,7 +56,7 @@ export async function updateAlertsAction(
   formData: FormData
 ): Promise<FormState> {
   const uid = await requireUserId();
-  updateAlerts(uid, {
+  await updateAlerts(uid, {
     alertCorreo: formData.get("alertCorreo") === "on",
     alertWhatsapp: formData.get("alertWhatsapp") === "on",
     alertResumen: formData.get("alertResumen") === "on",
@@ -74,7 +74,7 @@ export async function updateAppearanceAction(
   const accent = String(formData.get("accent") ?? "blue");
   const appName = String(formData.get("appName") ?? "Licitapro").trim() || "Licitapro";
 
-  updateAppearance(uid, { theme, accent, appName });
+  await updateAppearance(uid, { theme, accent, appName });
 
   // Persiste también en cookies para que el SSR renderice sin parpadeo.
   const { cookies } = await import("next/headers");

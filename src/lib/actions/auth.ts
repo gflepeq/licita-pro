@@ -26,11 +26,11 @@ export async function registerAction(
   if (!emailRe.test(email)) return { error: "Ingresa un correo válido." };
   if (password.length < 6)
     return { error: "La contraseña debe tener al menos 6 caracteres." };
-  if (getUserByEmail(email))
+  if (await getUserByEmail(email))
     return { error: "Ya existe una cuenta con este correo." };
 
   const hash = await bcrypt.hash(password, 10);
-  const userId = createUser({ email, passwordHash: hash, nombre });
+  const userId = await createUser({ email, passwordHash: hash, nombre });
   await createSessionCookie(userId);
   redirect("/onboarding");
 }
@@ -44,7 +44,7 @@ export async function loginAction(
 
   if (!email || !password) return { error: "Ingresa correo y contraseña." };
 
-  const user = getUserByEmail(email);
+  const user = await getUserByEmail(email);
   if (!user) return { error: "Correo o contraseña incorrectos." };
   const ok = await bcrypt.compare(password, user.password_hash);
   if (!ok) return { error: "Correo o contraseña incorrectos." };
@@ -61,23 +61,23 @@ export async function logoutAction() {
 /** Crea una cuenta demo y la deja lista (para el botón "Probar demo"). */
 export async function demoLoginAction() {
   const email = "demo@licitapro.cl";
-  let user = getUserByEmail(email);
+  let user = await getUserByEmail(email);
   if (!user) {
     const hash = await bcrypt.hash("demo1234", 10);
-    const id = createUser({
+    const id = await createUser({
       email,
       passwordHash: hash,
       nombre: "Camila Rojas",
       empresa: "Innova Suministros SpA",
     });
     const { completeOnboarding } = await import("@/lib/db");
-    completeOnboarding(id, {
+    await completeOnboarding(id, {
       empresa: "Innova Suministros SpA",
       rut: "76.543.210-9",
       rubros: ["Tecnología", "Servicios Generales", "Electricidad e Iluminación"],
       regiones: ["Metropolitana", "Valparaíso", "Biobío"],
     });
-    user = getUserById(id);
+    user = await getUserById(id);
   }
   if (user) await createSessionCookie(user.id);
   redirect("/dashboard");

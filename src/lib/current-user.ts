@@ -6,5 +6,5 @@ import { getSessionUserId } from "./session";
 export async function currentUser(): Promise<UserProfile | null> {
   const uid = await getSessionUserId();
   if (!uid) return null;
-  return getProfile(uid);
+  return await getProfile(uid);
 }

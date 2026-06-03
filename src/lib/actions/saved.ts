@@ -7,7 +7,7 @@ import type { Licitacion } from "@/lib/data";
 
 export async function toggleSavedAction(licitacion: Licitacion): Promise<boolean> {
   const uid = await requireUserId();
-  const result = toggleSaved(uid, licitacion.codigo, licitacion);
+  const result = await toggleSaved(uid, licitacion.codigo, licitacion);
   revalidatePath("/dashboard/oportunidades");
   return result;
 }

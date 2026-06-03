@@ -10,7 +10,7 @@ export default async function OportunidadesPage() {
   const user = await currentUser();
   if (!user) redirect("/login");
 
-  const guardadas = listSaved(user.id) as Licitacion[];
+  const guardadas = (await listSaved(user.id)) as Licitacion[];
 
   return (
     <div>

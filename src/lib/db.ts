@@ -1,62 +1,84 @@
 import "server-only";
-import Database from "better-sqlite3";
+import { createClient, type Client, type InValue } from "@libsql/client";
 import { existsSync, mkdirSync } from "node:fs";
 import path from "node:path";
 
-// Base de datos SQLite. La ubicación es configurable vía DATA_DIR para que en
-// producción apunte a un volumen persistente (Railway/Render/Fly/VPS).
-const dataDir = process.env.DATA_DIR
-  ? path.resolve(process.env.DATA_DIR)
-  : path.join(process.cwd(), "data");
-if (!existsSync(dataDir)) mkdirSync(dataDir, { recursive: true });
-
-// Reutiliza la conexión entre recargas en desarrollo.
-const g = globalThis as unknown as { __licitaproDb?: Database.Database };
-
-function init(): Database.Database {
-  const db = new Database(path.join(dataDir, "licitapro.db"));
-  db.pragma("journal_mode = WAL");
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS users (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      email TEXT UNIQUE NOT NULL,
-      password_hash TEXT NOT NULL,
-      nombre TEXT NOT NULL,
-      empresa TEXT NOT NULL DEFAULT '',
-      rut TEXT NOT NULL DEFAULT '',
-      plan TEXT NOT NULL DEFAULT 'Trial',
-      onboarded INTEGER NOT NULL DEFAULT 0,
-      created_at TEXT NOT NULL DEFAULT (datetime('now'))
-    );
-
-    CREATE TABLE IF NOT EXISTS settings (
-      user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
-      rubros TEXT NOT NULL DEFAULT '[]',
-      regiones TEXT NOT NULL DEFAULT '[]',
-      alert_correo INTEGER NOT NULL DEFAULT 1,
-      alert_whatsapp INTEGER NOT NULL DEFAULT 1,
-      alert_resumen INTEGER NOT NULL DEFAULT 1,
-      umbral INTEGER NOT NULL DEFAULT 75,
-      theme TEXT NOT NULL DEFAULT 'light',
-      accent TEXT NOT NULL DEFAULT 'blue',
-      app_name TEXT NOT NULL DEFAULT 'Licitapro'
-    );
-
-    CREATE TABLE IF NOT EXISTS saved (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-      codigo TEXT NOT NULL,
-      data TEXT NOT NULL,
-      created_at TEXT NOT NULL DEFAULT (datetime('now')),
-      UNIQUE(user_id, codigo)
-    );
-  `);
-  return db;
+// Conexión libSQL: en producción usa Turso (TURSO_DATABASE_URL + TURSO_AUTH_TOKEN);
+// en local cae a un archivo SQLite (file:) bajo DATA_DIR o ./data.
+function resolveUrl(): string {
+  if (process.env.TURSO_DATABASE_URL) return process.env.TURSO_DATABASE_URL;
+  const dir = process.env.DATA_DIR
+    ? path.resolve(process.env.DATA_DIR)
+    : path.join(process.cwd(), "data");
+  if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
+  return `file:${path.join(dir, "licitapro.db")}`;
 }
 
-export const db = g.__licitaproDb ?? (g.__licitaproDb = init());
+const g = globalThis as unknown as {
+  __libsql?: Client;
+  __libsqlReady?: Promise<void>;
+};
 
-// ---------- Tipos de fila ----------
+function client(): Client {
+  if (!g.__libsql) {
+    g.__libsql = createClient({
+      url: resolveUrl(),
+      authToken: process.env.TURSO_AUTH_TOKEN,
+    });
+  }
+  return g.__libsql;
+}
+
+const SCHEMA = `
+  CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    email TEXT UNIQUE NOT NULL,
+    password_hash TEXT NOT NULL,
+    nombre TEXT NOT NULL,
+    empresa TEXT NOT NULL DEFAULT '',
+    rut TEXT NOT NULL DEFAULT '',
+    plan TEXT NOT NULL DEFAULT 'Trial',
+    onboarded INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+  CREATE TABLE IF NOT EXISTS settings (
+    user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+    rubros TEXT NOT NULL DEFAULT '[]',
+    regiones TEXT NOT NULL DEFAULT '[]',
+    alert_correo INTEGER NOT NULL DEFAULT 1,
+    alert_whatsapp INTEGER NOT NULL DEFAULT 1,
+    alert_resumen INTEGER NOT NULL DEFAULT 1,
+    umbral INTEGER NOT NULL DEFAULT 75,
+    theme TEXT NOT NULL DEFAULT 'light',
+    accent TEXT NOT NULL DEFAULT 'blue',
+    app_name TEXT NOT NULL DEFAULT 'Licitapro'
+  );
+  CREATE TABLE IF NOT EXISTS saved (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    codigo TEXT NOT NULL,
+    data TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    UNIQUE(user_id, codigo)
+  );
+`;
+
+// Ejecuta las migraciones una sola vez por proceso.
+function ready(): Promise<void> {
+  if (!g.__libsqlReady) {
+    g.__libsqlReady = client()
+      .executeMultiple(SCHEMA)
+      .then(() => undefined);
+  }
+  return g.__libsqlReady;
+}
+
+async function run(sql: string, args: InValue[] = []) {
+  await ready();
+  return client().execute({ sql, args });
+}
+
+// ---------- Tipos ----------
 export interface UserRow {
   id: number;
   email: string;
@@ -67,66 +89,6 @@ export interface UserRow {
   plan: string;
   onboarded: number;
   created_at: string;
-}
-
-export interface SettingsRow {
-  user_id: number;
-  rubros: string;
-  regiones: string;
-  alert_correo: number;
-  alert_whatsapp: number;
-  alert_resumen: number;
-  umbral: number;
-  theme: string;
-  accent: string;
-  app_name: string;
-}
-
-// ---------- Acceso a datos ----------
-export function getUserByEmail(email: string): UserRow | undefined {
-  return db
-    .prepare("SELECT * FROM users WHERE email = ?")
-    .get(email.toLowerCase()) as UserRow | undefined;
-}
-
-export function getUserById(id: number): UserRow | undefined {
-  return db.prepare("SELECT * FROM users WHERE id = ?").get(id) as
-    | UserRow
-    | undefined;
-}
-
-export function createUser(input: {
-  email: string;
-  passwordHash: string;
-  nombre: string;
-  empresa?: string;
-}): number {
-  const info = db
-    .prepare(
-      "INSERT INTO users (email, password_hash, nombre, empresa) VALUES (?, ?, ?, ?)"
-    )
-    .run(
-      input.email.toLowerCase(),
-      input.passwordHash,
-      input.nombre,
-      input.empresa ?? ""
-    );
-  const userId = Number(info.lastInsertRowid);
-  db.prepare("INSERT INTO settings (user_id) VALUES (?)").run(userId);
-  return userId;
-}
-
-export function getSettings(userId: number): SettingsRow {
-  let row = db
-    .prepare("SELECT * FROM settings WHERE user_id = ?")
-    .get(userId) as SettingsRow | undefined;
-  if (!row) {
-    db.prepare("INSERT INTO settings (user_id) VALUES (?)").run(userId);
-    row = db
-      .prepare("SELECT * FROM settings WHERE user_id = ?")
-      .get(userId) as SettingsRow;
-  }
-  return row;
 }
 
 export interface UserProfile {
@@ -149,131 +111,169 @@ export interface UserProfile {
   appName: string;
 }
 
-export function getProfile(userId: number): UserProfile | null {
-  const u = getUserById(userId);
+type Row = Record<string, unknown>;
+const s = (v: unknown) => String(v ?? "");
+const n = (v: unknown) => Number(v ?? 0);
+
+// ---------- Usuarios ----------
+export async function getUserByEmail(email: string): Promise<UserRow | undefined> {
+  const r = await run("SELECT * FROM users WHERE email = ?", [email.toLowerCase()]);
+  return r.rows[0] as unknown as UserRow | undefined;
+}
+
+export async function getUserById(id: number): Promise<UserRow | undefined> {
+  const r = await run("SELECT * FROM users WHERE id = ?", [id]);
+  return r.rows[0] as unknown as UserRow | undefined;
+}
+
+export async function createUser(input: {
+  email: string;
+  passwordHash: string;
+  nombre: string;
+  empresa?: string;
+}): Promise<number> {
+  const r = await run(
+    "INSERT INTO users (email, password_hash, nombre, empresa) VALUES (?, ?, ?, ?)",
+    [input.email.toLowerCase(), input.passwordHash, input.nombre, input.empresa ?? ""]
+  );
+  const userId = Number(r.lastInsertRowid);
+  await run("INSERT INTO settings (user_id) VALUES (?)", [userId]);
+  return userId;
+}
+
+// ---------- Perfil ----------
+export async function getProfile(userId: number): Promise<UserProfile | null> {
+  const u = await getUserById(userId);
   if (!u) return null;
-  const s = getSettings(userId);
-  const iniciales = u.nombre
+
+  let sr = (await run("SELECT * FROM settings WHERE user_id = ?", [userId]))
+    .rows[0] as Row | undefined;
+  if (!sr) {
+    await run("INSERT INTO settings (user_id) VALUES (?)", [userId]);
+    sr = (await run("SELECT * FROM settings WHERE user_id = ?", [userId]))
+      .rows[0] as Row;
+  }
+
+  const iniciales = s(u.nombre)
     .split(" ")
     .filter(Boolean)
     .slice(0, 2)
     .map((p) => p[0]?.toUpperCase())
     .join("");
+
   return {
-    id: u.id,
-    email: u.email,
-    nombre: u.nombre,
-    empresa: u.empresa,
-    rut: u.rut,
-    plan: u.plan,
-    onboarded: u.onboarded === 1,
+    id: n(u.id),
+    email: s(u.email),
+    nombre: s(u.nombre),
+    empresa: s(u.empresa),
+    rut: s(u.rut),
+    plan: s(u.plan),
+    onboarded: n(u.onboarded) === 1,
     iniciales: iniciales || "U",
-    rubros: JSON.parse(s.rubros) as string[],
-    regiones: JSON.parse(s.regiones) as string[],
-    alertCorreo: s.alert_correo === 1,
-    alertWhatsapp: s.alert_whatsapp === 1,
-    alertResumen: s.alert_resumen === 1,
-    umbral: s.umbral,
-    theme: s.theme === "dark" ? "dark" : "light",
-    accent: s.accent,
-    appName: s.app_name,
+    rubros: JSON.parse(s(sr.rubros) || "[]") as string[],
+    regiones: JSON.parse(s(sr.regiones) || "[]") as string[],
+    alertCorreo: n(sr.alert_correo) === 1,
+    alertWhatsapp: n(sr.alert_whatsapp) === 1,
+    alertResumen: n(sr.alert_resumen) === 1,
+    umbral: n(sr.umbral),
+    theme: s(sr.theme) === "dark" ? "dark" : "light",
+    accent: s(sr.accent) || "blue",
+    appName: s(sr.app_name) || "Licitapro",
   };
 }
 
-export function completeOnboarding(
+export async function completeOnboarding(
   userId: number,
   data: { empresa: string; rut: string; rubros: string[]; regiones: string[] }
 ) {
-  db.prepare("UPDATE users SET empresa = ?, rut = ?, onboarded = 1 WHERE id = ?").run(
+  await run("UPDATE users SET empresa = ?, rut = ?, onboarded = 1 WHERE id = ?", [
     data.empresa,
     data.rut,
-    userId
-  );
-  db.prepare("UPDATE settings SET rubros = ?, regiones = ? WHERE user_id = ?").run(
+    userId,
+  ]);
+  await run("UPDATE settings SET rubros = ?, regiones = ? WHERE user_id = ?", [
     JSON.stringify(data.rubros),
     JSON.stringify(data.regiones),
-    userId
-  );
+    userId,
+  ]);
 }
 
-export function updateProfile(
+export async function updateProfile(
   userId: number,
   data: { nombre: string; empresa: string; rut: string; rubros: string[]; regiones: string[] }
 ) {
-  db.prepare("UPDATE users SET nombre = ?, empresa = ?, rut = ? WHERE id = ?").run(
+  await run("UPDATE users SET nombre = ?, empresa = ?, rut = ? WHERE id = ?", [
     data.nombre,
     data.empresa,
     data.rut,
-    userId
-  );
-  db.prepare("UPDATE settings SET rubros = ?, regiones = ? WHERE user_id = ?").run(
+    userId,
+  ]);
+  await run("UPDATE settings SET rubros = ?, regiones = ? WHERE user_id = ?", [
     JSON.stringify(data.rubros),
     JSON.stringify(data.regiones),
-    userId
-  );
+    userId,
+  ]);
 }
 
-export function updateAlerts(
+export async function updateAlerts(
   userId: number,
-  data: {
-    alertCorreo: boolean;
-    alertWhatsapp: boolean;
-    alertResumen: boolean;
-    umbral: number;
-  }
+  data: { alertCorreo: boolean; alertWhatsapp: boolean; alertResumen: boolean; umbral: number }
 ) {
-  db.prepare(
-    "UPDATE settings SET alert_correo = ?, alert_whatsapp = ?, alert_resumen = ?, umbral = ? WHERE user_id = ?"
-  ).run(
-    data.alertCorreo ? 1 : 0,
-    data.alertWhatsapp ? 1 : 0,
-    data.alertResumen ? 1 : 0,
-    data.umbral,
-    userId
+  await run(
+    "UPDATE settings SET alert_correo = ?, alert_whatsapp = ?, alert_resumen = ?, umbral = ? WHERE user_id = ?",
+    [
+      data.alertCorreo ? 1 : 0,
+      data.alertWhatsapp ? 1 : 0,
+      data.alertResumen ? 1 : 0,
+      data.umbral,
+      userId,
+    ]
   );
 }
 
-export function updateAppearance(
+export async function updateAppearance(
   userId: number,
   data: { theme: "light" | "dark"; accent: string; appName: string }
 ) {
-  db.prepare(
-    "UPDATE settings SET theme = ?, accent = ?, app_name = ? WHERE user_id = ?"
-  ).run(data.theme, data.accent, data.appName, userId);
+  await run("UPDATE settings SET theme = ?, accent = ?, app_name = ? WHERE user_id = ?", [
+    data.theme,
+    data.accent,
+    data.appName,
+    userId,
+  ]);
 }
 
 // ---------- Oportunidades guardadas ----------
-export function listSavedCodes(userId: number): string[] {
-  return (
-    db.prepare("SELECT codigo FROM saved WHERE user_id = ?").all(userId) as {
-      codigo: string;
-    }[]
-  ).map((r) => r.codigo);
+export async function listSavedCodes(userId: number): Promise<string[]> {
+  const r = await run("SELECT codigo FROM saved WHERE user_id = ?", [userId]);
+  return r.rows.map((row) => s((row as Row).codigo));
 }
 
-export function listSaved(userId: number): unknown[] {
-  return (
-    db
-      .prepare("SELECT data FROM saved WHERE user_id = ? ORDER BY created_at DESC")
-      .all(userId) as { data: string }[]
-  ).map((r) => JSON.parse(r.data));
+export async function listSaved(userId: number): Promise<unknown[]> {
+  const r = await run(
+    "SELECT data FROM saved WHERE user_id = ? ORDER BY created_at DESC",
+    [userId]
+  );
+  return r.rows.map((row) => JSON.parse(s((row as Row).data)));
 }
 
-export function toggleSaved(userId: number, codigo: string, data: unknown): boolean {
-  const exists = db
-    .prepare("SELECT 1 FROM saved WHERE user_id = ? AND codigo = ?")
-    .get(userId, codigo);
-  if (exists) {
-    db.prepare("DELETE FROM saved WHERE user_id = ? AND codigo = ?").run(
-      userId,
-      codigo
-    );
+export async function toggleSaved(
+  userId: number,
+  codigo: string,
+  data: unknown
+): Promise<boolean> {
+  const exists = await run(
+    "SELECT 1 FROM saved WHERE user_id = ? AND codigo = ?",
+    [userId, codigo]
+  );
+  if (exists.rows.length > 0) {
+    await run("DELETE FROM saved WHERE user_id = ? AND codigo = ?", [userId, codigo]);
     return false;
   }
-  db.prepare("INSERT INTO saved (user_id, codigo, data) VALUES (?, ?, ?)").run(
+  await run("INSERT INTO saved (user_id, codigo, data) VALUES (?, ?, ?)", [
     userId,
     codigo,
-    JSON.stringify(data)
-  );
+    JSON.stringify(data),
+  ]);
   return true;
 }

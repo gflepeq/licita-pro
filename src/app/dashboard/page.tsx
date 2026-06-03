@@ -8,12 +8,15 @@ import { getLicitaciones } from "@/lib/mercadopublico";
 import { listSavedCodes } from "@/lib/db";
 import { diasRestantes, fmtCLP, fmtFecha, stats } from "@/lib/data";
 
+// El enriquecimiento de la API puede tardar; ampliamos el límite en Vercel.
+export const maxDuration = 60;
+
 export default async function DashboardHome() {
   const user = await currentUser();
   if (!user) redirect("/login");
 
   const { items, source } = await getLicitaciones(user.rubros);
-  const saved = listSavedCodes(user.id);
+  const saved = await listSavedCodes(user.id);
 
   const publicadas = items.filter((l) => l.estado === "Publicada");
   const topRelevantes = [...publicadas].sort((a, b) => b.score - a.score).slice(0, 5);
