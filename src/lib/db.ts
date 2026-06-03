@@ -1,36 +1,39 @@
 import "server-only";
-import { createClient, type Client, type InValue } from "@libsql/client";
-import { existsSync, mkdirSync } from "node:fs";
-import path from "node:path";
+import type { Client, InValue } from "@libsql/client";
 
-// Conexión libSQL: en producción usa Turso (TURSO_DATABASE_URL + TURSO_AUTH_TOKEN);
-// en local cae a un archivo SQLite (file:) bajo DATA_DIR o ./data.
-function resolveUrl(): string {
-  if (process.env.TURSO_DATABASE_URL) return process.env.TURSO_DATABASE_URL;
+// Conexión libSQL.
+// - Producción (Turso): cliente WEB (HTTP puro, sin binarios nativos) → ideal serverless.
+// - Local (sin Turso): cliente Node sobre archivo SQLite bajo DATA_DIR o ./data.
+async function createDbClient(): Promise<Client> {
+  if (process.env.TURSO_DATABASE_URL) {
+    const { createClient } = await import("@libsql/client/web");
+    return createClient({
+      url: process.env.TURSO_DATABASE_URL,
+      authToken: process.env.TURSO_AUTH_TOKEN,
+    });
+  }
+  const { createClient } = await import("@libsql/client");
+  const { existsSync, mkdirSync } = await import("node:fs");
+  const path = await import("node:path");
   const dir = process.env.DATA_DIR
     ? path.resolve(process.env.DATA_DIR)
     : path.join(process.cwd(), "data");
   if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
-  return `file:${path.join(dir, "licitapro.db")}`;
+  return createClient({ url: `file:${path.join(dir, "licitapro.db")}` });
 }
 
 const g = globalThis as unknown as {
-  __libsql?: Client;
-  __libsqlReady?: Promise<void>;
+  __libsql?: Promise<Client>;
+  __libsqlReady?: Promise<Client>;
 };
 
-function client(): Client {
-  if (!g.__libsql) {
-    g.__libsql = createClient({
-      url: resolveUrl(),
-      authToken: process.env.TURSO_AUTH_TOKEN,
-    });
-  }
+function getClient(): Promise<Client> {
+  if (!g.__libsql) g.__libsql = createDbClient();
   return g.__libsql;
 }
 
-const SCHEMA = `
-  CREATE TABLE IF NOT EXISTS users (
+const SCHEMA: string[] = [
+  `CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     email TEXT UNIQUE NOT NULL,
     password_hash TEXT NOT NULL,
@@ -40,8 +43,8 @@ const SCHEMA = `
     plan TEXT NOT NULL DEFAULT 'Trial',
     onboarded INTEGER NOT NULL DEFAULT 0,
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
-  );
-  CREATE TABLE IF NOT EXISTS settings (
+  )`,
+  `CREATE TABLE IF NOT EXISTS settings (
     user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
     rubros TEXT NOT NULL DEFAULT '[]',
     regiones TEXT NOT NULL DEFAULT '[]',
@@ -52,30 +55,32 @@ const SCHEMA = `
     theme TEXT NOT NULL DEFAULT 'light',
     accent TEXT NOT NULL DEFAULT 'blue',
     app_name TEXT NOT NULL DEFAULT 'Licitapro'
-  );
-  CREATE TABLE IF NOT EXISTS saved (
+  )`,
+  `CREATE TABLE IF NOT EXISTS saved (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     codigo TEXT NOT NULL,
     data TEXT NOT NULL,
     created_at TEXT NOT NULL DEFAULT (datetime('now')),
     UNIQUE(user_id, codigo)
-  );
-`;
+  )`,
+];
 
-// Ejecuta las migraciones una sola vez por proceso.
-function ready(): Promise<void> {
+// Crea el cliente y ejecuta las migraciones una sola vez por proceso.
+function ready(): Promise<Client> {
   if (!g.__libsqlReady) {
-    g.__libsqlReady = client()
-      .executeMultiple(SCHEMA)
-      .then(() => undefined);
+    g.__libsqlReady = (async () => {
+      const c = await getClient();
+      for (const stmt of SCHEMA) await c.execute(stmt);
+      return c;
+    })();
   }
   return g.__libsqlReady;
 }
 
 async function run(sql: string, args: InValue[] = []) {
-  await ready();
-  return client().execute({ sql, args });
+  const c = await ready();
+  return c.execute({ sql, args });
 }
 
 // ---------- Tipos ----------
