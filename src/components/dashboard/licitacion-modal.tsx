@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
   Bookmark,
@@ -8,19 +8,31 @@ import {
   CalendarClock,
   ExternalLink,
   FileSearch,
+  Loader2,
   MapPin,
+  Package,
   Sparkles,
   Tag,
+  Truck,
   Wallet,
   X,
 } from "lucide-react";
 import { EstadoBadge, ScoreBadge } from "@/components/dashboard/ui";
+import { compraAgilDetalleAction } from "@/lib/actions/detalle";
 import {
   diasRestantes,
   fmtCLP,
   fmtFecha,
   type Licitacion,
 } from "@/lib/data";
+
+interface CADetalle {
+  descripcion: string;
+  plazoEntregaDias: number | null;
+  direccionEntrega: string;
+  productos: { nombre: string; descripcion: string; cantidad: number; unidad: string }[];
+  documentos: { nombre: string; url: string }[];
+}
 
 export function LicitacionModal({
   licitacion,
@@ -33,6 +45,9 @@ export function LicitacionModal({
   onToggleSaved?: (l: Licitacion) => void;
   onClose: () => void;
 }) {
+  const [detalle, setDetalle] = useState<CADetalle | null>(null);
+  const [loadingDet, setLoadingDet] = useState(false);
+
   useEffect(() => {
     if (!licitacion) return;
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
@@ -43,6 +58,20 @@ export function LicitacionModal({
       document.body.style.overflow = "";
     };
   }, [licitacion, onClose]);
+
+  // Carga lazy de los términos de referencia de una compra ágil.
+  useEffect(() => {
+    setDetalle(null);
+    if (!licitacion || licitacion.tipo !== "Compra Ágil") return;
+    let cancel = false;
+    setLoadingDet(true);
+    compraAgilDetalleAction(licitacion.codigo)
+      .then((d) => !cancel && setDetalle(d))
+      .finally(() => !cancel && setLoadingDet(false));
+    return () => {
+      cancel = true;
+    };
+  }, [licitacion]);
 
   if (!licitacion) return null;
   const l = licitacion;
@@ -130,14 +159,71 @@ export function LicitacionModal({
             />
           </div>
 
-          {l.descripcion && (
+          {/* Licitación: descripción capturada */}
+          {esLicitacion && l.descripcion && (
             <div className="mt-5">
               <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted">
-                {esLicitacion ? "Descripción" : "Términos de referencia"}
+                Descripción
               </p>
               <p className="whitespace-pre-line text-sm leading-relaxed text-ink">
                 {l.descripcion}
               </p>
+            </div>
+          )}
+
+          {/* Compra Ágil: términos de referencia (lazy) */}
+          {!esLicitacion && (
+            <div className="mt-5">
+              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">
+                Términos de referencia
+              </p>
+              {loadingDet && (
+                <p className="flex items-center gap-2 text-sm text-muted">
+                  <Loader2 size={15} className="animate-spin" /> Cargando…
+                </p>
+              )}
+              {!loadingDet && detalle && (
+                <div className="space-y-3">
+                  {detalle.descripcion && (
+                    <p className="whitespace-pre-line text-sm leading-relaxed text-ink">
+                      {detalle.descripcion}
+                    </p>
+                  )}
+                  {(detalle.plazoEntregaDias != null || detalle.direccionEntrega) && (
+                    <p className="flex items-start gap-2 text-sm text-muted">
+                      <Truck size={15} className="mt-0.5 shrink-0" />
+                      {detalle.plazoEntregaDias != null
+                        ? `Entrega en ${detalle.plazoEntregaDias} días`
+                        : ""}
+                      {detalle.direccionEntrega ? ` · ${detalle.direccionEntrega}` : ""}
+                    </p>
+                  )}
+                  {detalle.productos.length > 0 && (
+                    <div>
+                      <p className="mb-1.5 flex items-center gap-1.5 text-sm font-semibold text-ink">
+                        <Package size={15} /> Productos solicitados
+                      </p>
+                      <ul className="space-y-1.5">
+                        {detalle.productos.map((p, i) => (
+                          <li key={i} className="rounded-lg bg-surface px-3 py-2 text-sm">
+                            <span className="font-medium text-ink">
+                              {p.cantidad} {p.unidad} · {p.nombre}
+                            </span>
+                            {p.descripcion && (
+                              <span className="block text-xs text-muted">{p.descripcion}</span>
+                            )}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              )}
+              {!loadingDet && !detalle && (
+                <p className="text-sm text-muted">
+                  No se pudieron cargar los términos de referencia.
+                </p>
+              )}
             </div>
           )}
 

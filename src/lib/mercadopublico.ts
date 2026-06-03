@@ -4,9 +4,13 @@ import { licitaciones as mockLicitaciones, type Licitacion } from "@/lib/data";
 const BASE = "https://api.mercadopublico.cl/servicios/v1/publico";
 const TICKET = process.env.MERCADO_PUBLICO_TICKET || "";
 
+// API v2 de Compra Ágil (ticket en header). Reusa el mismo ticket por defecto.
+const CA_BASE = process.env.COMPRA_AGIL_API_BASE || "https://api2.mercadopublico.cl";
+const CA_TICKET = process.env.COMPRA_AGIL_API_TICKET || TICKET;
+
 // Cuántos ítems enriquecer con el endpoint de detalle (llamadas secuenciales).
 const LIC_ENRICH = 12;
-const AGIL_ENRICH = 6;
+const AGIL_MAX = 30; // la API v2 ya trae todo en el listado (sin enriquecer)
 const TIME_BUDGET_MS = 20000;
 const ENRICH_DELAY_MS = 300; // la API rechaza peticiones muy seguidas
 
@@ -213,66 +217,108 @@ async function fetchLicitaciones(deadline: number, query?: string): Promise<Lici
   return out;
 }
 
-// ---- Enriquecimiento: compras ágiles (órdenes de compra con código -AG) ----
-async function fetchComprasAgiles(deadline: number, query?: string): Promise<Licitacion[]> {
-  const list = await fetchJson(`${BASE}/ordenesdecompra.json?ticket=${TICKET}`);
-  const listado: MpListItem[] = list?.Listado ?? [];
-  if (!Array.isArray(listado) || listado.length === 0) return [];
-
-  const q = query ? norm(query) : "";
-  const agiles = listado
-    .filter((x) => x.Codigo && /-AG\d+$/i.test(String(x.Codigo)) && x.Nombre)
-    .filter((x) => (q ? norm(String(x.Nombre)).includes(q) : true));
-
-  const out: Licitacion[] = [];
-  for (let i = 0; i < agiles.length && out.length < AGIL_ENRICH; i++) {
-    if (Date.now() > deadline) break;
-    const base = agiles[i];
-    const codigo = String(base.Codigo);
-    // Limpia el prefijo "FI_" y el sufijo "compra ágil: ..." del nombre.
-    const nombre = String(base.Nombre)
-      .replace(/^FI_\s*/i, "")
-      .replace(/\s*(compra ágil|orden de compra)\s*:.*$/i, "")
-      .replace(/\s*orden de compra generada.*$/i, "")
-      .trim();
-
-    let organismo = "Organismo público";
-    let region = "—";
-    let monto = 0;
-    let fecha = "";
-    let descripcion = "";
-
-    const det = await fetchDetail(
-      `${BASE}/ordenesdecompra.json?codigo=${encodeURIComponent(codigo)}&ticket=${TICKET}`
-    );
-    const d = det?.Listado?.[0];
-    if (d) {
-      organismo = d.Comprador?.NombreOrganismo ?? organismo;
-      region = cleanRegion(d.Comprador?.RegionUnidad);
-      monto = Number(d.Total) || 0;
-      fecha = parseFecha(d.Fechas?.FechaEnvio ?? d.Fechas?.FechaCreacion);
-      descripcion = String(d.Descripcion ?? "").trim();
-    }
-
-    out.push({
-      id: codigo,
-      codigo,
-      nombre,
-      organismo,
-      region,
-      tipo: "Compra Ágil",
-      monto,
-      estado: "Adjudicada",
-      publicada: fecha,
-      cierre: fecha,
-      score: 0,
-      categoria: "Compra Ágil",
-      guardada: false,
-      descripcion,
+// ---- API v2 de Compra Ágil (api2.mercadopublico.cl, ticket en header) ----
+async function fetchCA(query: string, timeoutMs = 12000): Promise<any | null> {
+  try {
+    const controller = new AbortController();
+    const to = setTimeout(() => controller.abort(), timeoutMs);
+    const res = await fetch(`${CA_BASE}/v2/compra-agil${query}`, {
+      signal: controller.signal,
+      headers: { ticket: CA_TICKET, Accept: "application/json" },
+      cache: "no-store",
     });
-    await sleep(ENRICH_DELAY_MS);
+    clearTimeout(to);
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (data?.success !== "OK") return null;
+    return data.payload;
+  } catch {
+    return null;
   }
-  return out;
+}
+
+function mapEstadoCA(codigo: unknown): Licitacion["estado"] {
+  const c = String(codigo ?? "").toLowerCase();
+  if (c.includes("cerrad")) return "Cerrada";
+  if (c.includes("desiert")) return "Desierta";
+  if (c.includes("adjudic")) return "Adjudicada";
+  if (c.includes("cancel")) return "Cerrada";
+  return "Publicada";
+}
+
+interface CAItem {
+  codigo?: string;
+  nombre?: string;
+  estado?: { codigo?: string };
+  fechas?: { fecha_publicacion?: string; fecha_cierre?: string };
+  montos?: { monto_disponible_clp?: number; monto_disponible?: number };
+  institucion?: { organismo_comprador?: string; nombre_region?: string };
+}
+
+function mapCA(it: CAItem): Licitacion {
+  const codigo = String(it.codigo ?? "");
+  return {
+    id: codigo,
+    codigo,
+    nombre: String(it.nombre ?? "").trim(),
+    organismo: it.institucion?.organismo_comprador?.trim() || "Organismo público",
+    region: cleanRegion(it.institucion?.nombre_region),
+    tipo: "Compra Ágil",
+    monto: Number(it.montos?.monto_disponible_clp ?? it.montos?.monto_disponible) || 0,
+    estado: mapEstadoCA(it.estado?.codigo),
+    publicada: parseFecha(it.fechas?.fecha_publicacion),
+    cierre: parseFecha(it.fechas?.fecha_cierre),
+    score: 0,
+    categoria: "Compra Ágil",
+    guardada: false,
+  };
+}
+
+// Listado de compras ágiles (búsqueda por q, o ventana de 24h por defecto).
+async function fetchComprasAgilesV2(query?: string): Promise<Licitacion[]> {
+  const q = query?.trim();
+  const qs = q
+    ? `?q=${encodeURIComponent(q)}&tamano_pagina=50&numero_pagina=1`
+    : `?ttl_cambio_ms=86400000&tamano_pagina=50&numero_pagina=1`;
+  const payload = await fetchCA(qs);
+  const items: CAItem[] = payload?.items ?? [];
+  if (!Array.isArray(items)) return [];
+  return items.slice(0, AGIL_MAX).map(mapCA);
+}
+
+// Detalle de una compra ágil: términos de referencia (descripción + productos).
+export interface CompraAgilDetalle {
+  descripcion: string;
+  plazoEntregaDias: number | null;
+  direccionEntrega: string;
+  productos: { nombre: string; descripcion: string; cantidad: number; unidad: string }[];
+  documentos: { nombre: string; url: string }[];
+}
+
+export async function getCompraAgilDetalle(
+  codigo: string
+): Promise<CompraAgilDetalle | null> {
+  const payload = await fetchCA(`/${encodeURIComponent(codigo)}`);
+  if (!payload) return null;
+  const prods = Array.isArray(payload.productos_solicitados)
+    ? payload.productos_solicitados
+    : [];
+  const docs = Array.isArray(payload.documentos) ? payload.documentos : [];
+  return {
+    descripcion: String(payload.descripcion ?? "").trim(),
+    plazoEntregaDias: payload.entrega?.plazo_entrega_dias ?? null,
+    direccionEntrega: String(payload.entrega?.direccion_entrega ?? "").trim(),
+    productos: prods.map((p: Record<string, unknown>) => ({
+      nombre: String(p.nombre ?? ""),
+      descripcion: String(p.descripcion ?? ""),
+      cantidad: Number(p.cantidad) || 0,
+      unidad: String(p.unidad_medida ?? ""),
+    })),
+    documentos: docs.map((d: Record<string, unknown>) => ({
+      nombre: String(d.nombre ?? d.nombre_archivo ?? "Documento"),
+      url: String(d.url ?? d.link ?? ""),
+    })),
+  };
 }
 
 // Caché en memoria del proceso: enriquecer es independiente del usuario,
@@ -286,7 +332,7 @@ const g = globalThis as unknown as {
 async function enrichAll(): Promise<Licitacion[]> {
   const deadline = Date.now() + TIME_BUDGET_MS;
   const lic = await fetchLicitaciones(deadline);
-  const agil = await fetchComprasAgiles(deadline);
+  const agil = await fetchComprasAgilesV2();
   return [...lic, ...agil];
 }
 
@@ -328,7 +374,7 @@ function demoFor(rubros: string[], query?: string): Licitacion[] {
 async function searchLive(query: string): Promise<Licitacion[]> {
   const deadline = Date.now() + TIME_BUDGET_MS;
   const lic = await fetchLicitaciones(deadline, query);
-  const agil = await fetchComprasAgiles(deadline, query);
+  const agil = await fetchComprasAgilesV2(query);
   return [...lic, ...agil];
 }
 
