@@ -17,12 +17,14 @@ import {
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { Faq } from "@/components/faq";
+import { AnnouncementBanner } from "@/components/announcement-banner";
 
 export default function Home() {
   return (
     <div className="flex min-h-screen flex-col bg-background">
       <SiteHeader />
       <main className="flex-1">
+        <AnnouncementBanner className="mx-auto max-w-6xl px-4 pt-4 sm:px-6" />
         <Hero />
         <LogosBar />
         <Problema />

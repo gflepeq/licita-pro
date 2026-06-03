@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { DashboardShell } from "@/components/dashboard/shell";
+import { AnnouncementBanner } from "@/components/announcement-banner";
 import { currentUser } from "@/lib/current-user";
 import type { SafeUser } from "@/lib/types";
 
@@ -29,5 +30,10 @@ export default async function DashboardLayout({
     isAdmin: user.isAdmin,
   };
 
-  return <DashboardShell user={safe}>{children}</DashboardShell>;
+  return (
+    <DashboardShell user={safe}>
+      <AnnouncementBanner className="mb-5" />
+      {children}
+    </DashboardShell>
+  );
 }

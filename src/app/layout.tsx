@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import { cookies } from "next/headers";
 import "./globals.css";
 import { accentVars } from "@/lib/accents";
+import { SITE } from "@/lib/site";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -11,7 +12,8 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Licitapro — Detecta y gana licitaciones del Estado con IA",
+  metadataBase: new URL(SITE.url),
+  title: `${SITE.name} — Detecta y gana licitaciones del Estado con IA`,
   description:
     "Licitapro detecta automáticamente licitaciones públicas y Compras Ágiles de Mercado Público con inteligencia artificial. Alertas diarias, análisis de bases con IA y seguimiento de adjudicaciones para PYMEs proveedoras del Estado en Chile.",
   keywords: [
