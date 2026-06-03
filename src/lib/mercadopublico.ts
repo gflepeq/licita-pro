@@ -80,9 +80,10 @@ function parseFecha(s: unknown): string {
 }
 
 function cleanRegion(r: unknown): string {
-  const s = String(r ?? "").trim();
-  if (!s) return "—";
-  return s.replace(/^Regi[oó]n\s+(del?\s+|de\s+la\s+|de\s+)?/i, "").trim() || s;
+  const raw = String(r ?? "").trim();
+  if (!raw) return "—";
+  const cleaned = raw.replace(/^Regi[oó]n\s+(del?\s+|de\s+la\s+|de\s+)?/i, "").trim() || raw;
+  return cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
 }
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
