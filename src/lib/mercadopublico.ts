@@ -218,7 +218,7 @@ async function fetchLicitaciones(deadline: number, query?: string): Promise<Lici
 }
 
 // ---- API v2 de Compra Ágil (api2.mercadopublico.cl, ticket en header) ----
-async function fetchCA(query: string, timeoutMs = 12000): Promise<any | null> {
+async function fetchCA(query: string, timeoutMs = 25000): Promise<any | null> {
   try {
     const controller = new AbortController();
     const to = setTimeout(() => controller.abort(), timeoutMs);
@@ -331,8 +331,11 @@ const g = globalThis as unknown as {
 
 async function enrichAll(): Promise<Licitacion[]> {
   const deadline = Date.now() + TIME_BUDGET_MS;
-  const lic = await fetchLicitaciones(deadline);
-  const agil = await fetchComprasAgilesV2();
+  // Hosts distintos (v1 licitaciones / v2 compra ágil): se pueden paralelizar.
+  const [lic, agil] = await Promise.all([
+    fetchLicitaciones(deadline),
+    fetchComprasAgilesV2(),
+  ]);
   return [...lic, ...agil];
 }
 
@@ -373,8 +376,10 @@ function demoFor(rubros: string[], query?: string): Licitacion[] {
 // Búsqueda en vivo sobre toda la lista del día (sin caché; enriquece coincidencias).
 async function searchLive(query: string): Promise<Licitacion[]> {
   const deadline = Date.now() + TIME_BUDGET_MS;
-  const lic = await fetchLicitaciones(deadline, query);
-  const agil = await fetchComprasAgilesV2(query);
+  const [lic, agil] = await Promise.all([
+    fetchLicitaciones(deadline, query),
+    fetchComprasAgilesV2(query),
+  ]);
   return [...lic, ...agil];
 }
 
