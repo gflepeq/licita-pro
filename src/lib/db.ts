@@ -3,8 +3,11 @@ import Database from "better-sqlite3";
 import { existsSync, mkdirSync } from "node:fs";
 import path from "node:path";
 
-// Base de datos SQLite local persistida en ./data/licitapro.db
-const dataDir = path.join(process.cwd(), "data");
+// Base de datos SQLite. La ubicación es configurable vía DATA_DIR para que en
+// producción apunte a un volumen persistente (Railway/Render/Fly/VPS).
+const dataDir = process.env.DATA_DIR
+  ? path.resolve(process.env.DATA_DIR)
+  : path.join(process.cwd(), "data");
 if (!existsSync(dataDir)) mkdirSync(dataDir, { recursive: true });
 
 // Reutiliza la conexión entre recargas en desarrollo.
