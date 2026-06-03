@@ -41,24 +41,40 @@ function hash(s: string): number {
   return h;
 }
 
-export function scoreFor(texto: string, rubros: string[], codigo: string): number {
-  const t = texto.toLowerCase();
-  let score = 58;
-  if (rubros.length) {
-    let matched = false;
-    for (const r of rubros) {
-      const kws = RUBRO_KEYWORDS[r] ?? [r.toLowerCase()];
-      if (kws.some((k) => t.includes(k))) {
-        matched = true;
-        break;
-      }
-    }
-    score += matched ? 26 : -4;
-  } else {
-    score += 8;
+// Calcula el "match" según los Rubros de interés del usuario.
+// Devuelve el score (0-100) y los rubros que coincidieron.
+export function scoreOpportunity(
+  texto: string,
+  rubros: string[],
+  codigo: string
+): { score: number; matched: string[] } {
+  const t = norm(texto);
+  const spread = hash(codigo) % 6; // desempate determinista dentro de la banda
+
+  if (!rubros.length) {
+    return { score: 68 + spread, matched: [] };
   }
-  score += hash(codigo) % 12;
-  return Math.max(50, Math.min(98, score));
+
+  const matched: string[] = [];
+  let maxHits = 0;
+  for (const r of rubros) {
+    const kws = (RUBRO_KEYWORDS[r] ?? [r]).map(norm);
+    const hits = kws.filter((k) => t.includes(k)).length;
+    if (hits > 0) {
+      matched.push(r);
+      maxHits = Math.max(maxHits, hits);
+    }
+  }
+
+  let score: number;
+  if (matched.length === 0) {
+    score = 50 + spread; // sin coincidencia con tus rubros → bajo
+  } else {
+    // base por fuerza del match: varios rubros o varias palabras = mayor
+    const base = matched.length >= 2 ? 92 : maxHits >= 2 ? 88 : 80;
+    score = Math.min(98, base + spread);
+  }
+  return { score, matched };
 }
 
 function mapEstado(codigo: unknown, estado: unknown): Licitacion["estado"] {
@@ -289,13 +305,22 @@ async function getRawOpportunities(): Promise<Licitacion[]> {
   }
 }
 
+function scoreOf(l: Licitacion, rubros: string[]) {
+  const { score, matched } = scoreOpportunity(
+    `${l.nombre} ${l.categoria} ${l.descripcion ?? ""}`,
+    rubros,
+    l.codigo
+  );
+  return { ...l, score, rubrosMatch: matched };
+}
+
 function demoFor(rubros: string[], query?: string): Licitacion[] {
   const q = query ? norm(query) : "";
   return mockLicitaciones
     .filter((l) =>
       q ? norm(`${l.nombre} ${l.organismo} ${l.categoria}`).includes(q) : true
     )
-    .map((l) => ({ ...l, score: scoreFor(l.nombre + " " + l.categoria, rubros, l.codigo) }))
+    .map((l) => scoreOf(l, rubros))
     .sort((a, b) => b.score - a.score);
 }
 
@@ -339,7 +364,7 @@ export async function getLicitaciones(
   }
 
   const items = raw
-    .map((l) => ({ ...l, score: scoreFor(l.nombre, rubros, l.codigo) }))
+    .map((l) => scoreOf(l, rubros))
     .sort((a, b) => b.score - a.score);
 
   return { items, source: "live", fetchedAt };

@@ -15,10 +15,11 @@ export interface Licitacion {
   estado: EstadoLicitacion;
   publicada: string; // ISO date
   cierre: string; // ISO date
-  score: number; // 0-100 relevancia IA
+  score: number; // 0-100 relevancia según rubros del usuario
   categoria: string;
   guardada: boolean;
   descripcion?: string; // detalle de la licitación/compra ágil
+  rubrosMatch?: string[]; // rubros del usuario con los que coincide
 }
 
 export const fmtCLP = (n: number) =>

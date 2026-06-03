@@ -54,6 +54,7 @@ export function LicitacionesClient({
   );
 
   // ----- Filtros -----
+  const [soloRubros, setSoloRubros] = useState(false);
   const [orden, setOrden] = useState<Orden>("relevancia");
   const [mecLic, setMecLic] = useState(false);
   const [mecAgil, setMecAgil] = useState(false);
@@ -65,6 +66,7 @@ export function LicitacionesClient({
   const [pubNo, setPubNo] = useState(false);
 
   const resetFiltros = () => {
+    setSoloRubros(false);
     setOrden("relevancia");
     setMecLic(false);
     setMecAgil(false);
@@ -114,6 +116,7 @@ export function LicitacionesClient({
     const pubActivo = pubSi || pubNo;
 
     const r = data.filter((l) => {
+      if (soloRubros && !(l.rubrosMatch && l.rubrosMatch.length > 0)) return false;
       if (mecActivo) {
         const ok = (mecLic && l.tipo === "Licitación") || (mecAgil && l.tipo === "Compra Ágil");
         if (!ok) return false;
@@ -138,10 +141,15 @@ export function LicitacionesClient({
       recientes: (a, b) => (b.publicada || "").localeCompare(a.publicada || ""),
     };
     return [...r].sort(sorters[orden]);
-  }, [data, orden, mecLic, mecAgil, region, cEste, cProx, cLejos, pubSi, pubNo]);
+  }, [data, soloRubros, orden, mecLic, mecAgil, region, cEste, cProx, cLejos, pubSi, pubNo]);
+
+  const conRubros = useMemo(
+    () => data.filter((l) => l.rubrosMatch && l.rubrosMatch.length > 0).length,
+    [data]
+  );
 
   const filtrosActivos =
-    mecLic || mecAgil || region !== "Todas" || cEste || cProx || cLejos || pubSi || pubNo || orden !== "relevancia";
+    soloRubros || mecLic || mecAgil || region !== "Todas" || cEste || cProx || cLejos || pubSi || pubNo || orden !== "relevancia";
 
   return (
     <div>
@@ -232,6 +240,16 @@ export function LicitacionesClient({
             )}
           </div>
 
+          {/* Oportunidades de negocio */}
+          <Group title="Oportunidades de negocio">
+            <Check
+              label="Solo mis rubros"
+              count={conRubros}
+              checked={soloRubros}
+              onChange={setSoloRubros}
+            />
+          </Group>
+
           {/* Ordenar por */}
           <Group title="Ordenar por">
             <select
@@ -295,12 +313,18 @@ export function LicitacionesClient({
                   className="cursor-pointer rounded-2xl border border-line bg-card p-4 transition-shadow hover:shadow-md"
                 >
                   <div className="flex items-start justify-between gap-3">
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                       <ScoreBadge score={l.score} />
                       <span className="rounded-full bg-surface px-2 py-0.5 text-xs font-medium text-muted">
                         {l.tipo}
                       </span>
                       <EstadoBadge estado={l.estado} />
+                      {l.rubrosMatch && l.rubrosMatch.length > 0 && (
+                        <span className="rounded-full bg-accent-500/10 px-2 py-0.5 text-xs font-semibold text-accent-600">
+                          {l.rubrosMatch[0]}
+                          {l.rubrosMatch.length > 1 ? ` +${l.rubrosMatch.length - 1}` : ""}
+                        </span>
+                      )}
                     </div>
                     <button
                       onClick={(e) => {

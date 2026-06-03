@@ -6,8 +6,10 @@ import {
   Bookmark,
   Building2,
   CalendarClock,
+  ExternalLink,
   FileSearch,
   MapPin,
+  Sparkles,
   Tag,
   Wallet,
   X,
@@ -45,6 +47,12 @@ export function LicitacionModal({
   if (!licitacion) return null;
   const l = licitacion;
   const dias = l.cierre ? diasRestantes(l.cierre) : null;
+  const esLicitacion = l.tipo === "Licitación";
+  const fichaUrl = esLicitacion
+    ? `https://www.mercadopublico.cl/Procurement/Modules/RFB/DetailsAcquisition.aspx?idlicitacion=${encodeURIComponent(
+        l.codigo
+      )}`
+    : null;
 
   return (
     <div
@@ -80,6 +88,22 @@ export function LicitacionModal({
           <h2 className="text-lg font-bold leading-snug text-ink">{l.nombre}</h2>
           <p className="mt-1 font-mono text-xs text-muted">{l.codigo}</p>
 
+          {l.rubrosMatch && l.rubrosMatch.length > 0 && (
+            <div className="mt-3 flex flex-wrap items-center gap-1.5">
+              <span className="inline-flex items-center gap-1 text-xs font-medium text-accent-600">
+                <Sparkles size={13} /> Coincide con tus rubros:
+              </span>
+              {l.rubrosMatch.map((r) => (
+                <span
+                  key={r}
+                  className="rounded-full bg-accent-500/10 px-2 py-0.5 text-xs font-semibold text-accent-600"
+                >
+                  {r}
+                </span>
+              ))}
+            </div>
+          )}
+
           <div className="mt-5 grid gap-3 sm:grid-cols-2">
             <Field icon={Building2} label="Organismo" value={l.organismo} />
             <Field icon={MapPin} label="Región" value={l.region !== "—" ? l.region : "No informada"} />
@@ -109,12 +133,23 @@ export function LicitacionModal({
           {l.descripcion && (
             <div className="mt-5">
               <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted">
-                Descripción
+                {esLicitacion ? "Descripción" : "Términos de referencia"}
               </p>
               <p className="whitespace-pre-line text-sm leading-relaxed text-ink">
                 {l.descripcion}
               </p>
             </div>
+          )}
+
+          {fichaUrl && (
+            <a
+              href={fichaUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-5 inline-flex items-center gap-2 rounded-lg border border-brand-200 bg-brand-50 px-4 py-2.5 text-sm font-semibold text-brand-700 hover:bg-brand-100 dark:border-brand-900 dark:bg-brand-950/40 dark:text-brand-300"
+            >
+              <ExternalLink size={16} /> Ver bases y adjuntos en Mercado Público
+            </a>
           )}
         </div>
 
