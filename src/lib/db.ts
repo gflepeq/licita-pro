@@ -423,6 +423,39 @@ export async function listPayments(): Promise<Pago[]> {
   });
 }
 
+export async function createPaymentRow(input: {
+  userId: number;
+  plan: string;
+  monto: number;
+  metodo?: string;
+  estado?: string;
+}): Promise<number> {
+  const r = await run(
+    "INSERT INTO payments (user_id, plan, monto, estado, metodo) VALUES (?, ?, ?, ?, ?)",
+    [input.userId, input.plan, input.monto, input.estado ?? "pendiente", input.metodo ?? "Flow"]
+  );
+  return Number(r.lastInsertRowid);
+}
+
+export async function getPaymentById(id: number): Promise<
+  { id: number; userId: number; plan: string; monto: number; estado: string } | null
+> {
+  const r = await run("SELECT * FROM payments WHERE id = ?", [id]);
+  const o = r.rows[0] as Row | undefined;
+  if (!o) return null;
+  return {
+    id: n(o.id),
+    userId: n(o.user_id),
+    plan: s(o.plan),
+    monto: n(o.monto),
+    estado: s(o.estado),
+  };
+}
+
+export async function setPaymentEstado(id: number, estado: string) {
+  await run("UPDATE payments SET estado = ? WHERE id = ?", [estado, id]);
+}
+
 export async function paymentStats() {
   const total = n(
     (await run("SELECT COALESCE(SUM(monto),0) AS t FROM payments WHERE estado='pagado'")).rows[0]?.t

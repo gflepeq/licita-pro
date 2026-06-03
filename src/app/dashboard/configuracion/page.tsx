@@ -2,11 +2,19 @@ import { redirect } from "next/navigation";
 import { PageHeader } from "@/components/dashboard/ui";
 import { ProfileForm } from "@/components/dashboard/profile-form";
 import { AppearanceForm } from "@/components/dashboard/appearance-form";
+import { SubscribePlans } from "@/components/dashboard/subscribe-plans";
 import { currentUser } from "@/lib/current-user";
 
-export default async function ConfiguracionPage() {
+export default async function ConfiguracionPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ pago?: string }>;
+}) {
   const user = await currentUser();
   if (!user) redirect("/login");
+
+  const { pago } = await searchParams;
+  const pagoResultado = pago === "ok" ? "ok" : pago === "error" ? "error" : undefined;
 
   return (
     <div>
@@ -48,10 +56,11 @@ export default async function ConfiguracionPage() {
             <li>· Alertas por WhatsApp</li>
             <li>· Soporte prioritario</li>
           </ul>
-          <button className="mt-4 w-full rounded-lg border border-line py-2.5 text-sm font-semibold text-ink hover:bg-surface">
-            Cambiar de plan
-          </button>
         </div>
+      </div>
+
+      <div className="mt-5">
+        <SubscribePlans currentPlan={user.plan} pagoResultado={pagoResultado} />
       </div>
     </div>
   );
