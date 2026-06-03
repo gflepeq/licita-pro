@@ -43,3 +43,6 @@ next-env.d.ts
 
 # Datos locales
 /data
+
+# graphify (grafo generado, regenerable con: graphify update .)
+/graphify-out
