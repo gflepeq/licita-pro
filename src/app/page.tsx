@@ -18,6 +18,9 @@ import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { Faq } from "@/components/faq";
 import { AnnouncementBanner } from "@/components/announcement-banner";
+import { getPlanes } from "@/lib/db";
+import { fmtCLP } from "@/lib/data";
+import { capacidadLabel } from "@/lib/capacidades";
 
 export default function Home() {
   return (
@@ -366,52 +369,16 @@ function Testimonios() {
 }
 
 /* ---------------- Precios ---------------- */
-function Precios() {
-  const planes = [
-    {
-      nombre: "Trial",
-      precio: "$4.990",
-      periodo: "por 7 días",
-      desc: "Acceso completo para probar la plataforma.",
-      destacado: false,
-      features: [
-        "Detección con IA",
-        "Análisis de bases",
-        "Alertas por correo",
-        "Soporte por chat",
-      ],
-      cta: "Empezar prueba",
-    },
-    {
-      nombre: "Plan Detecta",
-      precio: "$14.990",
-      periodo: "/mes",
-      desc: "Ideal para empezar con Compras Ágiles.",
-      destacado: false,
-      features: [
-        "Detección de Compras Ágiles",
-        "Alertas diarias por correo",
-        "Hasta 50 oportunidades guardadas",
-        "Resumen semanal de adjudicaciones",
-      ],
-      cta: "Elegir Detecta",
-    },
-    {
-      nombre: "Plan Gana",
-      precio: "$34.990",
-      periodo: "/mes",
-      desc: "Todo lo que necesitas para ganar más.",
-      destacado: true,
-      features: [
-        "Licitaciones + Compras Ágiles",
-        "Análisis de bases con IA ilimitado",
-        "Alertas por WhatsApp",
-        "Borradores de cotización",
-        "Asistente IA y soporte prioritario",
-      ],
-      cta: "Elegir Gana",
-    },
-  ];
+async function Precios() {
+  const dbPlanes = await getPlanes();
+  const planes = dbPlanes.map((p) => ({
+    nombre: p.nombre,
+    precio: fmtCLP(p.precio),
+    periodo: p.periodo,
+    destacado: p.destacado,
+    features: p.features.map(capacidadLabel),
+    cta: `Elegir ${p.nombre}`,
+  }));
   return (
     <section id="precios" className="py-20 sm:py-24">
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
@@ -440,7 +407,6 @@ function Precios() {
                 </span>
               )}
               <h3 className="font-semibold text-ink">{p.nombre}</h3>
-              <p className="mt-1 text-sm text-muted">{p.desc}</p>
               <div className="mt-5 flex items-end gap-1">
                 <span className="text-4xl font-extrabold tracking-tight text-ink">
                   {p.precio}

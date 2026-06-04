@@ -5,7 +5,8 @@ import { useFormStatus } from "react-dom";
 import { AlertCircle, CheckCircle2, CreditCard, Loader2 } from "lucide-react";
 import { iniciarPagoAction, type PagoState } from "@/lib/actions/pago";
 import { fmtCLP } from "@/lib/data";
-import { PLANES } from "@/lib/planes";
+
+type PlanOpt = { id: string; nombre: string; precio: number; periodo: string };
 
 function PayButton({ actual }: { actual: boolean }) {
   const { pending } = useFormStatus();
@@ -29,9 +30,11 @@ function PayButton({ actual }: { actual: boolean }) {
 }
 
 export function SubscribePlans({
+  planes,
   currentPlan,
   pagoResultado,
 }: {
+  planes: PlanOpt[];
   currentPlan: string;
   pagoResultado?: "ok" | "error";
 }) {
@@ -64,7 +67,7 @@ export function SubscribePlans({
       )}
 
       <div className="mt-4 grid gap-3 sm:grid-cols-3">
-        {PLANES.map((p) => {
+        {planes.map((p) => {
           const actual = p.id === currentPlan;
           return (
             <div

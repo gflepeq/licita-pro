@@ -58,6 +58,16 @@ const SCHEMA: string[] = [
     clave TEXT PRIMARY KEY,
     valor TEXT NOT NULL DEFAULT ''
   )`,
+  `CREATE TABLE IF NOT EXISTS plans (
+    id TEXT PRIMARY KEY,
+    nombre TEXT NOT NULL,
+    precio INTEGER NOT NULL DEFAULT 0,
+    periodo TEXT NOT NULL DEFAULT '/mes',
+    features TEXT NOT NULL DEFAULT '[]',
+    destacado INTEGER NOT NULL DEFAULT 0,
+    activo INTEGER NOT NULL DEFAULT 1,
+    orden INTEGER NOT NULL DEFAULT 0
+  )`,
   `CREATE TABLE IF NOT EXISTS settings (
     user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
     rubros TEXT NOT NULL DEFAULT '[]',
@@ -390,6 +400,47 @@ export async function setUserRole(userId: number, role: string) {
   ]);
 }
 
+export async function adminCreateUser(input: {
+  email: string;
+  passwordHash: string;
+  nombre: string;
+  empresa: string;
+  plan: string;
+  role: string;
+}): Promise<number> {
+  const r = await run(
+    "INSERT INTO users (email, password_hash, nombre, empresa, plan, role, onboarded) VALUES (?, ?, ?, ?, ?, ?, 1)",
+    [
+      input.email.toLowerCase(),
+      input.passwordHash,
+      input.nombre,
+      input.empresa,
+      input.plan,
+      input.role === "admin" ? "admin" : "user",
+    ]
+  );
+  const userId = Number(r.lastInsertRowid);
+  await run("INSERT INTO settings (user_id) VALUES (?)", [userId]);
+  return userId;
+}
+
+export async function adminUpdateUser(
+  userId: number,
+  data: { nombre: string; empresa: string; plan: string; role: string }
+) {
+  await run(
+    "UPDATE users SET nombre = ?, empresa = ?, plan = ?, role = ? WHERE id = ?",
+    [data.nombre, data.empresa, data.plan, data.role === "admin" ? "admin" : "user", userId]
+  );
+}
+
+export async function deleteUser(userId: number) {
+  await run("DELETE FROM saved WHERE user_id = ?", [userId]);
+  await run("DELETE FROM payments WHERE user_id = ?", [userId]);
+  await run("DELETE FROM settings WHERE user_id = ?", [userId]);
+  await run("DELETE FROM users WHERE id = ?", [userId]);
+}
+
 export interface Pago {
   id: number;
   usuario: string;
@@ -492,6 +543,84 @@ export async function seedPaymentsIfEmpty() {
       );
     }
   }
+}
+
+// ---------- Planes (CRUD) ----------
+import { PLANES_SEED, type Plan } from "@/lib/planes";
+
+function rowToPlan(o: Row): Plan {
+  return {
+    id: s(o.id),
+    nombre: s(o.nombre),
+    precio: n(o.precio),
+    periodo: s(o.periodo),
+    features: JSON.parse(s(o.features) || "[]") as string[],
+    destacado: n(o.destacado) === 1,
+    activo: n(o.activo) === 1,
+    orden: n(o.orden),
+  };
+}
+
+export async function seedPlansIfEmpty() {
+  const c = n((await run("SELECT COUNT(*) AS c FROM plans")).rows[0]?.c);
+  if (c > 0) return;
+  for (const p of PLANES_SEED) {
+    await run(
+      "INSERT INTO plans (id, nombre, precio, periodo, features, destacado, activo, orden) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+      [p.id, p.nombre, p.precio, p.periodo, JSON.stringify(p.features), p.destacado ? 1 : 0, 1, p.orden]
+    );
+  }
+}
+
+export async function getPlanes(opts?: { all?: boolean }): Promise<Plan[]> {
+  await seedPlansIfEmpty();
+  const where = opts?.all ? "" : "WHERE activo = 1";
+  const r = await run(`SELECT * FROM plans ${where} ORDER BY orden, precio`);
+  return r.rows.map((row) => rowToPlan(row as Row));
+}
+
+export async function getPlanById(id: string): Promise<Plan | null> {
+  const r = await run("SELECT * FROM plans WHERE id = ?", [id]);
+  const o = r.rows[0] as Row | undefined;
+  return o ? rowToPlan(o) : null;
+}
+
+export async function createPlan(p: {
+  id: string;
+  nombre: string;
+  precio: number;
+  periodo: string;
+  features: string[];
+  destacado: boolean;
+  activo: boolean;
+  orden: number;
+}) {
+  await run(
+    "INSERT INTO plans (id, nombre, precio, periodo, features, destacado, activo, orden) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+    [p.id, p.nombre, p.precio, p.periodo, JSON.stringify(p.features), p.destacado ? 1 : 0, p.activo ? 1 : 0, p.orden]
+  );
+}
+
+export async function updatePlan(
+  id: string,
+  p: {
+    nombre: string;
+    precio: number;
+    periodo: string;
+    features: string[];
+    destacado: boolean;
+    activo: boolean;
+    orden: number;
+  }
+) {
+  await run(
+    "UPDATE plans SET nombre = ?, precio = ?, periodo = ?, features = ?, destacado = ?, activo = ?, orden = ? WHERE id = ?",
+    [p.nombre, p.precio, p.periodo, JSON.stringify(p.features), p.destacado ? 1 : 0, p.activo ? 1 : 0, p.orden, id]
+  );
+}
+
+export async function deletePlan(id: string) {
+  await run("DELETE FROM plans WHERE id = ?", [id]);
 }
 
 // ---------- Config global ----------

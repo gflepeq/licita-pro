@@ -1,20 +1,16 @@
 import Link from "next/link";
 import { CheckCircle2, Bookmark, Users, Wallet } from "lucide-react";
 import { PageHeader, StatCard } from "@/components/dashboard/ui";
-import { adminStats, listUsers, seedPaymentsIfEmpty } from "@/lib/db";
+import { adminStats, listUsers, seedPaymentsIfEmpty, getPlanes } from "@/lib/db";
 import { fmtCLP } from "@/lib/data";
-import { PLANES } from "@/lib/planes";
 
 export default async function AdminHome() {
   await seedPaymentsIfEmpty();
   const stats = await adminStats();
   const usuarios = (await listUsers()).slice(0, 6);
+  const PLANES = await getPlanes({ all: true });
 
-  const planColor: Record<string, string> = {
-    Trial: "bg-slate-400",
-    "Plan Detecta": "bg-brand-500",
-    "Plan Gana": "bg-accent-500",
-  };
+  const colores = ["bg-slate-400", "bg-brand-500", "bg-accent-500", "bg-amber-500", "bg-violet-500"];
   const totalPlan = stats.porPlan.reduce((s, p) => s + p.total, 0) || 1;
 
   return (
@@ -51,7 +47,7 @@ export default async function AdminHome() {
         <div className="rounded-2xl border border-line bg-card p-5">
           <h2 className="mb-4 font-semibold text-ink">Usuarios por plan</h2>
           <div className="space-y-3">
-            {PLANES.map((p) => {
+            {PLANES.map((p, i) => {
               const c = stats.porPlan.find((x) => x.plan === p.id)?.total ?? 0;
               const pct = Math.round((c / totalPlan) * 100);
               return (
@@ -64,7 +60,7 @@ export default async function AdminHome() {
                   </div>
                   <div className="h-2 overflow-hidden rounded-full bg-surface">
                     <div
-                      className={`h-full ${planColor[p.id] ?? "bg-brand-500"}`}
+                      className={`h-full ${colores[i % colores.length]}`}
                       style={{ width: `${pct}%` }}
                     />
                   </div>

@@ -2,9 +2,8 @@
 
 import { redirect } from "next/navigation";
 import { currentUser } from "@/lib/current-user";
-import { createPaymentRow, setPaymentEstado } from "@/lib/db";
+import { createPaymentRow, setPaymentEstado, getPlanById } from "@/lib/db";
 import { flowConfigured, flowCreatePayment } from "@/lib/flow";
-import { PLANES } from "@/lib/planes";
 import { SITE } from "@/lib/site";
 
 export type PagoState = { error?: string } | undefined;
@@ -17,7 +16,7 @@ export async function iniciarPagoAction(
   if (!user) redirect("/login");
 
   const planId = String(formData.get("plan") ?? "");
-  const plan = PLANES.find((p) => p.id === planId);
+  const plan = await getPlanById(planId);
   if (!plan) return { error: "Plan no válido." };
   if (plan.precio <= 0) return { error: "Este plan no requiere pago." };
 

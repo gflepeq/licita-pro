@@ -4,6 +4,7 @@ import { ProfileForm } from "@/components/dashboard/profile-form";
 import { AppearanceForm } from "@/components/dashboard/appearance-form";
 import { SubscribePlans } from "@/components/dashboard/subscribe-plans";
 import { currentUser } from "@/lib/current-user";
+import { getPlanes } from "@/lib/db";
 
 export default async function ConfiguracionPage({
   searchParams,
@@ -15,6 +16,12 @@ export default async function ConfiguracionPage({
 
   const { pago } = await searchParams;
   const pagoResultado = pago === "ok" ? "ok" : pago === "error" ? "error" : undefined;
+  const planes = (await getPlanes()).map((p) => ({
+    id: p.id,
+    nombre: p.nombre,
+    precio: p.precio,
+    periodo: p.periodo,
+  }));
 
   return (
     <div>
@@ -60,7 +67,7 @@ export default async function ConfiguracionPage({
       </div>
 
       <div className="mt-5">
-        <SubscribePlans currentPlan={user.plan} pagoResultado={pagoResultado} />
+        <SubscribePlans planes={planes} currentPlan={user.plan} pagoResultado={pagoResultado} />
       </div>
     </div>
   );
