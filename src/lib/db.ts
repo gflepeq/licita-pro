@@ -1,40 +1,32 @@
 import "server-only";
-import type { Client, InValue } from "@libsql/client";
+import postgres from "postgres";
 
-// Conexión libSQL.
-// - Producción (Turso): cliente WEB (HTTP puro, sin binarios nativos) → ideal serverless.
-// - Local (sin Turso): cliente Node sobre archivo SQLite bajo DATA_DIR o ./data.
-async function createDbClient(): Promise<Client> {
-  if (process.env.TURSO_DATABASE_URL) {
-    const { createClient } = await import("@libsql/client/web");
-    return createClient({
-      url: process.env.TURSO_DATABASE_URL,
-      authToken: process.env.TURSO_AUTH_TOKEN,
-    });
-  }
-  const { createClient } = await import("@libsql/client");
-  const { existsSync, mkdirSync } = await import("node:fs");
-  const path = await import("node:path");
-  const dir = process.env.DATA_DIR
-    ? path.resolve(process.env.DATA_DIR)
-    : path.join(process.cwd(), "data");
-  if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
-  return createClient({ url: `file:${path.join(dir, "licitapro.db")}` });
-}
+// Conexión a Postgres (Supabase). Define DATABASE_URL con la connection string
+// del "pooler" de Supabase (puerto 6543, modo transaction) para serverless.
+type Sql = ReturnType<typeof postgres>;
 
 const g = globalThis as unknown as {
-  __libsql?: Promise<Client>;
-  __libsqlReady?: Promise<Client>;
+  __pg?: Sql;
+  __pgReady?: Promise<Sql>;
 };
 
-function getClient(): Promise<Client> {
-  if (!g.__libsql) g.__libsql = createDbClient();
-  return g.__libsql;
+function getClient(): Sql {
+  if (!g.__pg) {
+    const url = process.env.DATABASE_URL;
+    if (!url) throw new Error("Falta DATABASE_URL (connection string de Supabase/Postgres).");
+    g.__pg = postgres(url, {
+      prepare: false, // requerido por el pooler (pgBouncer) de Supabase
+      ssl: "require",
+      max: 5,
+      idle_timeout: 20,
+    });
+  }
+  return g.__pg;
 }
 
 const SCHEMA: string[] = [
   `CREATE TABLE IF NOT EXISTS users (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id SERIAL PRIMARY KEY,
     email TEXT UNIQUE NOT NULL,
     password_hash TEXT NOT NULL,
     nombre TEXT NOT NULL,
@@ -43,16 +35,16 @@ const SCHEMA: string[] = [
     plan TEXT NOT NULL DEFAULT 'Trial',
     role TEXT NOT NULL DEFAULT 'user',
     onboarded INTEGER NOT NULL DEFAULT 0,
-    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
   )`,
   `CREATE TABLE IF NOT EXISTS payments (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id SERIAL PRIMARY KEY,
     user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     plan TEXT NOT NULL,
     monto INTEGER NOT NULL,
     estado TEXT NOT NULL DEFAULT 'pagado',
     metodo TEXT NOT NULL DEFAULT 'Webpay',
-    fecha TEXT NOT NULL DEFAULT (datetime('now'))
+    fecha TIMESTAMPTZ NOT NULL DEFAULT now()
   )`,
   `CREATE TABLE IF NOT EXISTS app_config (
     clave TEXT PRIMARY KEY,
@@ -81,35 +73,46 @@ const SCHEMA: string[] = [
     app_name TEXT NOT NULL DEFAULT 'Licitapro'
   )`,
   `CREATE TABLE IF NOT EXISTS saved (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id SERIAL PRIMARY KEY,
     user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     codigo TEXT NOT NULL,
     data TEXT NOT NULL,
-    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     UNIQUE(user_id, codigo)
   )`,
 ];
 
-// Crea el cliente y ejecuta las migraciones una sola vez por proceso.
-function ready(): Promise<Client> {
-  if (!g.__libsqlReady) {
-    g.__libsqlReady = (async () => {
-      const c = await getClient();
-      for (const stmt of SCHEMA) await c.execute(stmt);
-      // Migraciones para bases existentes (ignora si la columna ya existe).
-      try {
-        await c.execute("ALTER TABLE users ADD COLUMN role TEXT NOT NULL DEFAULT 'user'");
-      } catch {}
+// Crea las tablas (idempotente) una sola vez por proceso.
+function ready(): Promise<Sql> {
+  if (!g.__pgReady) {
+    g.__pgReady = (async () => {
+      const c = getClient();
+      for (const stmt of SCHEMA) await c.unsafe(stmt);
+      await c.unsafe(
+        "ALTER TABLE users ADD COLUMN IF NOT EXISTS role TEXT NOT NULL DEFAULT 'user'"
+      );
       return c;
     })();
   }
-  return g.__libsqlReady;
+  return g.__pgReady;
 }
 
-async function run(sql: string, args: InValue[] = []) {
-  const c = await ready();
-  return c.execute({ sql, args });
+// Convierte placeholders estilo SQLite (?) a Postgres ($1, $2, …).
+function toPg(sql: string): string {
+  let i = 0;
+  return sql.replace(/\?/g, () => `$${++i}`);
 }
+
+type RunResult = { rows: Record<string, unknown>[]; rowCount: number };
+
+async function run(sql: string, args: InValue[] = []): Promise<RunResult> {
+  const c = await ready();
+  const res = await c.unsafe(toPg(sql), args as never[]);
+  const rows = res as unknown as Record<string, unknown>[];
+  return { rows, rowCount: rows.length };
+}
+
+type InValue = string | number | boolean | null;
 
 // ---------- Tipos ----------
 export interface UserRow {
@@ -193,10 +196,10 @@ export async function createUser(input: {
   const role =
     total === 0 || isAdminEmail(input.email) ? "admin" : "user";
   const r = await run(
-    "INSERT INTO users (email, password_hash, nombre, empresa, role) VALUES (?, ?, ?, ?, ?)",
+    "INSERT INTO users (email, password_hash, nombre, empresa, role) VALUES (?, ?, ?, ?, ?) RETURNING id",
     [input.email.toLowerCase(), input.passwordHash, input.nombre, input.empresa ?? "", role]
   );
-  const userId = Number(r.lastInsertRowid);
+  const userId = Number(r.rows[0].id);
   await run("INSERT INTO settings (user_id) VALUES (?)", [userId]);
   return userId;
 }
@@ -363,7 +366,7 @@ export interface AdminUser {
 
 export async function listUsers(): Promise<AdminUser[]> {
   const r = await run(
-    `SELECT u.id, u.email, u.nombre, u.empresa, u.plan, u.role, u.onboarded, u.created_at,
+    `SELECT u.id, u.email, u.nombre, u.empresa, u.plan, u.role, u.onboarded, u.created_at::text AS created_at,
             (SELECT COUNT(*) FROM saved sv WHERE sv.user_id = u.id) AS guardadas
      FROM users u ORDER BY u.id DESC`
   );
@@ -418,7 +421,7 @@ export async function adminCreateUser(input: {
   role: string;
 }): Promise<number> {
   const r = await run(
-    "INSERT INTO users (email, password_hash, nombre, empresa, plan, role, onboarded) VALUES (?, ?, ?, ?, ?, ?, 1)",
+    "INSERT INTO users (email, password_hash, nombre, empresa, plan, role, onboarded) VALUES (?, ?, ?, ?, ?, ?, 1) RETURNING id",
     [
       input.email.toLowerCase(),
       input.passwordHash,
@@ -428,7 +431,7 @@ export async function adminCreateUser(input: {
       input.role === "admin" ? "admin" : "user",
     ]
   );
-  const userId = Number(r.lastInsertRowid);
+  const userId = Number(r.rows[0].id);
   await run("INSERT INTO settings (user_id) VALUES (?)", [userId]);
   return userId;
 }
@@ -463,7 +466,7 @@ export interface Pago {
 
 export async function listPayments(): Promise<Pago[]> {
   const r = await run(
-    `SELECT p.id, p.plan, p.monto, p.estado, p.metodo, p.fecha,
+    `SELECT p.id, p.plan, p.monto, p.estado, p.metodo, p.fecha::text AS fecha,
             u.nombre AS usuario, u.email
      FROM payments p JOIN users u ON u.id = p.user_id
      ORDER BY p.fecha DESC LIMIT 200`
@@ -491,10 +494,10 @@ export async function createPaymentRow(input: {
   estado?: string;
 }): Promise<number> {
   const r = await run(
-    "INSERT INTO payments (user_id, plan, monto, estado, metodo) VALUES (?, ?, ?, ?, ?)",
+    "INSERT INTO payments (user_id, plan, monto, estado, metodo) VALUES (?, ?, ?, ?, ?) RETURNING id",
     [input.userId, input.plan, input.monto, input.estado ?? "pendiente", input.metodo ?? "Flow"]
   );
-  return Number(r.lastInsertRowid);
+  return Number(r.rows[0].id);
 }
 
 export async function getPaymentById(id: number): Promise<
@@ -547,7 +550,7 @@ export async function seedPaymentsIfEmpty() {
     for (let m = 0; m < nPagos; m++) {
       await run(
         `INSERT INTO payments (user_id, plan, monto, estado, metodo, fecha)
-         VALUES (?, ?, ?, 'pagado', ?, datetime('now', ?))`,
+         VALUES (?, ?, ?, 'pagado', ?, now() + (?::interval))`,
         [n(o.id), plan, monto, m % 2 ? "Webpay" : "Transferencia", `-${m} months`]
       );
     }

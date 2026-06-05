@@ -21,6 +21,7 @@ import { AnnouncementBanner } from "@/components/announcement-banner";
 import { getPlanes } from "@/lib/db";
 import { fmtCLP } from "@/lib/data";
 import { capacidadLabel } from "@/lib/capacidades";
+import { PLANES_SEED } from "@/lib/planes";
 
 export default function Home() {
   return (
@@ -370,7 +371,13 @@ function Testimonios() {
 
 /* ---------------- Precios ---------------- */
 async function Precios() {
-  const dbPlanes = await getPlanes();
+  // Fallback a la semilla si la base no está disponible (la landing no debe caerse).
+  let dbPlanes;
+  try {
+    dbPlanes = await getPlanes();
+  } catch {
+    dbPlanes = PLANES_SEED;
+  }
   const planes = dbPlanes.map((p) => ({
     nombre: p.nombre,
     precio: fmtCLP(p.precio),
