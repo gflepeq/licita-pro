@@ -9,10 +9,11 @@ const CA_BASE = process.env.COMPRA_AGIL_API_BASE || "https://api2.mercadopublico
 const CA_TICKET = process.env.COMPRA_AGIL_API_TICKET || TICKET;
 
 // Cuántos ítems enriquecer con el endpoint de detalle (llamadas secuenciales).
-const LIC_ENRICH = 12;
+// Acotado para que la función serverless nunca se acerque al timeout.
+const LIC_ENRICH = 8;
 const AGIL_MAX = 30; // la API v2 ya trae todo en el listado (sin enriquecer)
-const TIME_BUDGET_MS = 20000;
-const ENRICH_DELAY_MS = 300; // la API rechaza peticiones muy seguidas
+const TIME_BUDGET_MS = 16000;
+const ENRICH_DELAY_MS = 180; // la API rechaza peticiones muy seguidas
 
 export interface LicitacionesResult {
   items: Licitacion[];
@@ -218,7 +219,7 @@ async function fetchLicitaciones(deadline: number, query?: string): Promise<Lici
 }
 
 // ---- API v2 de Compra Ágil (api2.mercadopublico.cl, ticket en header) ----
-async function fetchCA(query: string, timeoutMs = 25000): Promise<any | null> {
+async function fetchCA(query: string, timeoutMs = 14000): Promise<any | null> {
   try {
     const controller = new AbortController();
     const to = setTimeout(() => controller.abort(), timeoutMs);
@@ -339,15 +340,39 @@ async function enrichAll(): Promise<Licitacion[]> {
   return [...lic, ...agil];
 }
 
+const CACHE_KEY = "mp_cache_v1";
+
 async function getRawOpportunities(): Promise<Licitacion[]> {
+  // 1. Caché en memoria (instancia caliente).
   if (g.__mpCache && Date.now() - g.__mpCache.ts < CACHE_TTL_MS)
     return g.__mpCache.items;
   if (g.__mpInflight) return g.__mpInflight;
 
+  // 2. Caché persistente en Supabase (sobrevive a cold starts → evita el 504).
+  try {
+    const { cacheGet } = await import("@/lib/db");
+    const raw = await cacheGet(CACHE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw) as { items: Licitacion[]; ts: number };
+      if (parsed.items?.length && Date.now() - parsed.ts < CACHE_TTL_MS) {
+        g.__mpCache = parsed;
+        return parsed.items;
+      }
+    }
+  } catch {}
+
+  // 3. Enriquecer (acotado) y guardar en ambas cachés.
   g.__mpInflight = enrichAll();
   try {
     const items = await g.__mpInflight;
-    if (items.length) g.__mpCache = { items, ts: Date.now() };
+    if (items.length) {
+      const entry = { items, ts: Date.now() };
+      g.__mpCache = entry;
+      try {
+        const { cacheSet } = await import("@/lib/db");
+        await cacheSet(CACHE_KEY, JSON.stringify(entry));
+      } catch {}
+    }
     return items;
   } finally {
     g.__mpInflight = null;

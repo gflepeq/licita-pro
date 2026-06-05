@@ -3,7 +3,7 @@ import { AuthShell } from "@/components/auth/auth-shell";
 import { AuthForm } from "@/components/auth/auth-form";
 import { getSessionUserId } from "@/lib/session";
 
-export const metadata = { title: "Ingresar — Licitapro" };
+export const metadata = { title: "Ingresar — LiciApp" };
 
 export default async function LoginPage() {
   if (await getSessionUserId()) redirect("/dashboard");

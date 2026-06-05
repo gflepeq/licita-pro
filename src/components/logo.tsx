@@ -3,7 +3,7 @@ import Link from "next/link";
 export function Logo({
   className = "",
   dark = false,
-  name = "Licitapro",
+  name = "LiciApp",
 }: {
   className?: string;
   dark?: boolean;

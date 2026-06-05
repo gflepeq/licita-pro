@@ -30,7 +30,7 @@ export function ConfigForm({ config }: { config: Record<string, string> }) {
           <Field
             label="Nombre de la plataforma"
             name="nombre_plataforma"
-            defaultValue={config.nombre_plataforma || "Licitapro"}
+            defaultValue={config.nombre_plataforma || "LiciApp"}
           />
           <Field
             label="Email de soporte"

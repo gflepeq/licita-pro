@@ -1,4 +1,4 @@
-// Datos de ejemplo para el dashboard de Licitapro.
+// Datos de ejemplo para el dashboard de LiciApp.
 // Simulan licitaciones de Mercado Público (ChileCompra).
 
 export type EstadoLicitacion = "Publicada" | "Cerrada" | "Adjudicada" | "Desierta";

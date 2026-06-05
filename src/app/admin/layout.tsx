@@ -4,7 +4,7 @@ import { AdminShell } from "@/components/admin/admin-shell";
 import { currentUser } from "@/lib/current-user";
 import type { SafeUser } from "@/lib/types";
 
-export const metadata: Metadata = { title: "Super Admin — Licitapro" };
+export const metadata: Metadata = { title: "Super Admin — LiciApp" };
 
 export default async function AdminLayout({
   children,

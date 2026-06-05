@@ -72,7 +72,7 @@ export async function updateAppearanceAction(
   const uid = await requireUserId();
   const theme = formData.get("theme") === "dark" ? "dark" : "light";
   const accent = String(formData.get("accent") ?? "blue");
-  const appName = String(formData.get("appName") ?? "Licitapro").trim() || "Licitapro";
+  const appName = String(formData.get("appName") ?? "LiciApp").trim() || "LiciApp";
 
   await updateAppearance(uid, { theme, accent, appName });
 

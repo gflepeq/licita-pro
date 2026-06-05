@@ -59,7 +59,7 @@ function Hero() {
             <span className="text-brand-600">sin perder horas buscando</span>
           </h1>
           <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-muted">
-            Licitapro detecta automáticamente las licitaciones públicas y
+            LiciApp detecta automáticamente las licitaciones públicas y
             Compras Ágiles de Mercado Público relevantes para tu empresa, y
             analiza las bases con IA en segundos.
           </p>
@@ -139,7 +139,7 @@ function LogosBar() {
     <section className="border-y border-line bg-surface">
       <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
         <p className="text-center text-xs font-semibold uppercase tracking-wider text-muted">
-          Empresas que ya venden al Estado con Licitapro
+          Empresas que ya venden al Estado con LiciApp
         </p>
         <div className="mt-6 flex flex-wrap items-center justify-center gap-x-10 gap-y-4 text-base font-bold text-slate-400">
           <span>Innova Suministros</span>
@@ -480,7 +480,7 @@ function CtaFinal() {
               Empieza a detectar oportunidades hoy
             </h2>
             <p className="mx-auto mt-4 max-w-xl text-lg text-brand-50">
-              Prueba Licitapro 7 días por $4.990 y descubre cuántas licitaciones
+              Prueba LiciApp 7 días por $4.990 y descubre cuántas licitaciones
               estás dejando pasar.
             </p>
             <Link

@@ -70,7 +70,7 @@ const SCHEMA: string[] = [
     umbral INTEGER NOT NULL DEFAULT 75,
     theme TEXT NOT NULL DEFAULT 'light',
     accent TEXT NOT NULL DEFAULT 'blue',
-    app_name TEXT NOT NULL DEFAULT 'Licitapro'
+    app_name TEXT NOT NULL DEFAULT 'LiciApp'
   )`,
   `CREATE TABLE IF NOT EXISTS saved (
     id SERIAL PRIMARY KEY,
@@ -90,6 +90,11 @@ function ready(): Promise<Sql> {
       for (const stmt of SCHEMA) await c.unsafe(stmt);
       await c.unsafe(
         "ALTER TABLE users ADD COLUMN IF NOT EXISTS role TEXT NOT NULL DEFAULT 'user'"
+      );
+      // Rebrand: Licitapro → LiciApp en datos existentes (idempotente).
+      await c.unsafe("UPDATE settings SET app_name = 'LiciApp' WHERE app_name = 'Licitapro'");
+      await c.unsafe(
+        "UPDATE app_config SET valor = 'LiciApp' WHERE clave = 'nombre_plataforma' AND valor = 'Licitapro'"
       );
       return c;
     })();
@@ -252,7 +257,7 @@ export async function getProfile(userId: number): Promise<UserProfile | null> {
     umbral: n(sr.umbral),
     theme: s(sr.theme) === "dark" ? "dark" : "light",
     accent: s(sr.accent) || "blue",
-    appName: s(sr.app_name) || "Licitapro",
+    appName: s(sr.app_name) || "LiciApp",
   };
 }
 
@@ -655,4 +660,19 @@ export async function setConfig(entries: Record<string, string>) {
       [clave, valor]
     );
   }
+}
+
+// ---------- Caché persistente (sobrevive entre invocaciones serverless) ----------
+export async function cacheGet(clave: string): Promise<string | null> {
+  const r = await run("SELECT valor FROM app_config WHERE clave = ?", [clave]);
+  const o = r.rows[0] as Row | undefined;
+  return o ? s(o.valor) : null;
+}
+
+export async function cacheSet(clave: string, valor: string) {
+  await run(
+    `INSERT INTO app_config (clave, valor) VALUES (?, ?)
+     ON CONFLICT(clave) DO UPDATE SET valor = excluded.valor`,
+    [clave, valor]
+  );
 }

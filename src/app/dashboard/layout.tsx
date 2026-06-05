@@ -6,7 +6,7 @@ import { currentUser } from "@/lib/current-user";
 import type { SafeUser } from "@/lib/types";
 
 export const metadata: Metadata = {
-  title: "Dashboard — Licitapro",
+  title: "Dashboard — LiciApp",
 };
 
 export default async function DashboardLayout({

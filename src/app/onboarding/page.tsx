@@ -3,7 +3,7 @@ import { Logo } from "@/components/logo";
 import { OnboardingForm } from "@/components/onboarding-form";
 import { currentUser } from "@/lib/current-user";
 
-export const metadata = { title: "Configura tu perfil — Licitapro" };
+export const metadata = { title: "Configura tu perfil — LiciApp" };
 
 export default async function OnboardingPage() {
   const user = await currentUser();

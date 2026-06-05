@@ -15,7 +15,7 @@ export const metadata: Metadata = {
   metadataBase: new URL(SITE.url),
   title: `${SITE.name} — Detecta y gana licitaciones del Estado con IA`,
   description:
-    "Licitapro detecta automáticamente licitaciones públicas y Compras Ágiles de Mercado Público con inteligencia artificial. Alertas diarias, análisis de bases con IA y seguimiento de adjudicaciones para PYMEs proveedoras del Estado en Chile.",
+    "LiciApp detecta automáticamente licitaciones públicas y Compras Ágiles de Mercado Público con inteligencia artificial. Alertas diarias, análisis de bases con IA y seguimiento de adjudicaciones para PYMEs proveedoras del Estado en Chile.",
   keywords: [
     "licitaciones",
     "Mercado Público",
