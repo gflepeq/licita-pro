@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { EstadoBadge, ScoreBadge } from "@/components/dashboard/ui";
 import { LicitacionModal } from "@/components/dashboard/licitacion-modal";
+import { PlanLock } from "@/components/dashboard/plan-lock";
 import { toggleSavedAction } from "@/lib/actions/saved";
 import { diasRestantes, fmtCLP, fmtFecha, type Licitacion } from "@/lib/data";
 
@@ -38,11 +39,17 @@ export function LicitacionesClient({
   savedCodes,
   source,
   query,
+  puedeRegion = true,
+  puedeBuscar = true,
+  tiposPermitidos = ["Licitación", "Compra Ágil"],
 }: {
   data: Licitacion[];
   savedCodes: string[];
   source: "live" | "demo";
   query: string;
+  puedeRegion?: boolean;
+  puedeBuscar?: boolean;
+  tiposPermitidos?: string[];
 }) {
   const router = useRouter();
   const [term, setTerm] = useState(query);
@@ -88,9 +95,16 @@ export function LicitacionesClient({
   };
 
   const toggle = (l: Licitacion) => {
-    setSaved((s) => ({ ...s, [l.codigo]: !s[l.codigo] }));
-    startTransition(() => {
-      toggleSavedAction(l);
+    const estaba = !!saved[l.codigo];
+    setSaved((s) => ({ ...s, [l.codigo]: !estaba }));
+    startTransition(async () => {
+      const r = await toggleSavedAction(l);
+      if (r.limit) {
+        setSaved((s) => ({ ...s, [l.codigo]: false }));
+        alert(
+          `Alcanzaste el límite de ${15} oportunidades guardadas de tu plan. Mejora tu plan para guardar más.`
+        );
+      }
     });
   };
 
@@ -172,13 +186,16 @@ export function LicitacionesClient({
           : `Existen ${rows.length} oportunidades para tu perfil.`}
       </p>
 
-      {/* Buscador */}
+      {/* Buscador (según plan) */}
+      {!puedeBuscar && (
+        <PlanLock texto="La búsqueda en Mercado Público está disponible en planes superiores." />
+      )}
       <form
         onSubmit={(e) => {
           e.preventDefault();
-          buscar(term);
+          if (puedeBuscar) buscar(term);
         }}
-        className="mb-5 flex gap-2"
+        className={`mb-5 flex gap-2 ${puedeBuscar ? "" : "hidden"}`}
       >
         <div className="relative flex-1">
           <Search
@@ -264,14 +281,20 @@ export function LicitacionesClient({
             </select>
           </Group>
 
-          {/* Mecanismos de compra */}
-          <Group title="Mecanismos de compra">
-            <Check label="Licitaciones" count={cuenta.lic} checked={mecLic} onChange={setMecLic} />
-            <Check label="Compra Ágil" count={cuenta.agil} checked={mecAgil} onChange={setMecAgil} />
-          </Group>
+          {/* Mecanismos de compra (según plan) */}
+          {tiposPermitidos.length > 1 && (
+            <Group title="Mecanismos de compra">
+              {tiposPermitidos.includes("Licitación") && (
+                <Check label="Licitaciones" count={cuenta.lic} checked={mecLic} onChange={setMecLic} />
+              )}
+              {tiposPermitidos.includes("Compra Ágil") && (
+                <Check label="Compra Ágil" count={cuenta.agil} checked={mecAgil} onChange={setMecAgil} />
+              )}
+            </Group>
+          )}
 
-          {/* Regiones */}
-          {regiones.length > 1 && (
+          {/* Regiones (según plan) */}
+          {puedeRegion && regiones.length > 1 && (
             <Group title="Regiones">
               <select
                 value={region}

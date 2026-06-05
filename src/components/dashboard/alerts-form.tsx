@@ -2,7 +2,7 @@
 
 import { useActionState, useState } from "react";
 import { useFormStatus } from "react-dom";
-import { CheckCircle2, Loader2, Mail, MessageCircle, Smartphone } from "lucide-react";
+import { CheckCircle2, Loader2, Lock, Mail, MessageCircle, Smartphone } from "lucide-react";
 import { updateAlertsAction, type FormState } from "@/lib/actions/profile";
 
 function Toggle({
@@ -54,11 +54,13 @@ export function AlertsForm({
   whatsapp,
   resumen,
   umbral: umbralInit,
+  capacidades,
 }: {
   correo: boolean;
   whatsapp: boolean;
   resumen: boolean;
   umbral: number;
+  capacidades: string[];
 }) {
   const [state, action] = useActionState<FormState, FormData>(
     updateAlertsAction,
@@ -70,31 +72,45 @@ export function AlertsForm({
   const [umbral, setUmbral] = useState(umbralInit);
 
   const canales = [
-    { icon: Mail, t: "Alertas por correo", d: "Resumen diario de oportunidades relevantes.", name: "alertCorreo", on: c, set: () => setC((v) => !v) },
-    { icon: MessageCircle, t: "Alertas por WhatsApp", d: "Las oportunidades relevantes directo a tu WhatsApp.", name: "alertWhatsapp", on: w, set: () => setW((v) => !v) },
-    { icon: Smartphone, t: "Resumen semanal de adjudicaciones", d: "Cada lunes, los resultados de lo que seguiste.", name: "alertResumen", on: r, set: () => setR((v) => !v) },
+    { icon: Mail, t: "Alertas por correo", d: "Resumen diario de oportunidades relevantes.", name: "alertCorreo", cap: "alertas_correo", on: c, set: () => setC((v) => !v) },
+    { icon: MessageCircle, t: "Alertas por WhatsApp", d: "Las oportunidades relevantes directo a tu WhatsApp.", name: "alertWhatsapp", cap: "alertas_whatsapp", on: w, set: () => setW((v) => !v) },
+    { icon: Smartphone, t: "Resumen semanal de adjudicaciones", d: "Cada lunes, los resultados de lo que seguiste.", name: "alertResumen", cap: "resumen_semanal", on: r, set: () => setR((v) => !v) },
   ];
 
   return (
     <form action={action}>
       <div className="space-y-3">
-        {canales.map((ch) => (
-          <div
-            key={ch.t}
-            className="flex items-center justify-between gap-4 rounded-2xl border border-line bg-card p-5"
-          >
-            <div className="flex items-start gap-3">
-              <span className="grid h-10 w-10 place-items-center rounded-xl bg-brand-50 text-brand-600 dark:bg-brand-950/40">
-                <ch.icon size={20} />
-              </span>
-              <div>
-                <p className="font-medium text-ink">{ch.t}</p>
-                <p className="text-sm text-muted">{ch.d}</p>
+        {canales.map((ch) => {
+          const bloqueado = !capacidades.includes(ch.cap);
+          return (
+            <div
+              key={ch.t}
+              className={`flex items-center justify-between gap-4 rounded-2xl border border-line bg-card p-5 ${
+                bloqueado ? "opacity-70" : ""
+              }`}
+            >
+              <div className="flex items-start gap-3">
+                <span className="grid h-10 w-10 place-items-center rounded-xl bg-brand-50 text-brand-600 dark:bg-brand-950/40">
+                  <ch.icon size={20} />
+                </span>
+                <div>
+                  <p className="font-medium text-ink">{ch.t}</p>
+                  <p className="text-sm text-muted">
+                    {bloqueado ? "Disponible en planes superiores." : ch.d}
+                  </p>
+                </div>
               </div>
+              {bloqueado ? (
+                <>
+                  <input type="hidden" name={ch.name} value="off" />
+                  <Lock size={16} className="text-muted" />
+                </>
+              ) : (
+                <Toggle name={ch.name} on={ch.on} onClick={ch.set} />
+              )}
             </div>
-            <Toggle name={ch.name} on={ch.on} onClick={ch.set} />
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       <div className="mt-5 rounded-2xl border border-line bg-card p-5">

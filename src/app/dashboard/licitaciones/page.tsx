@@ -15,17 +15,28 @@ export default async function LicitacionesPage({
   if (!user) redirect("/login");
 
   const { q } = await searchParams;
-  const query = (q ?? "").trim();
+  const caps = user.capacidades;
+  const puedeBuscar = caps.includes("busqueda");
+  const query = puedeBuscar ? (q ?? "").trim() : "";
 
   const { items, source } = await getLicitaciones(user.rubros, query);
   const savedCodes = await listSavedCodes(user.id);
 
+  // Enforcement por plan: solo los tipos de oportunidad que incluye el plan.
+  const tiposPermitidos: string[] = [];
+  if (caps.includes("licitaciones")) tiposPermitidos.push("Licitación");
+  if (caps.includes("compra_agil")) tiposPermitidos.push("Compra Ágil");
+  const data = items.filter((l) => tiposPermitidos.includes(l.tipo));
+
   return (
     <LicitacionesClient
-      data={items}
+      data={data}
       savedCodes={savedCodes}
       source={source}
       query={query}
+      puedeRegion={caps.includes("filtro_region")}
+      puedeBuscar={puedeBuscar}
+      tiposPermitidos={tiposPermitidos}
     />
   );
 }

@@ -152,6 +152,7 @@ export interface UserProfile {
   onboarded: boolean;
   role: string;
   isAdmin: boolean;
+  capacidades: string[];
   iniciales: string;
   rubros: string[];
   regiones: string[];
@@ -220,6 +221,13 @@ export async function getProfile(userId: number): Promise<UserProfile | null> {
     .map((p) => p[0]?.toUpperCase())
     .join("");
 
+  const esAdmin = s(u.role) === "admin" || isAdminEmail(s(u.email));
+  // Capacidades según el plan. Admin = todas. Plan inexistente = todas (no castigar).
+  const { CAPACIDADES } = await import("@/lib/capacidades");
+  const todas = CAPACIDADES.map((c) => c.key);
+  const planRow = await getPlanById(s(u.plan));
+  const capacidades = esAdmin ? todas : planRow ? planRow.features : todas;
+
   return {
     id: n(u.id),
     email: s(u.email),
@@ -229,7 +237,8 @@ export async function getProfile(userId: number): Promise<UserProfile | null> {
     plan: s(u.plan),
     onboarded: n(u.onboarded) === 1,
     role: s(u.role) || "user",
-    isAdmin: s(u.role) === "admin" || isAdminEmail(s(u.email)),
+    isAdmin: esAdmin,
+    capacidades,
     iniciales: iniciales || "U",
     rubros: JSON.parse(s(sr.rubros) || "[]") as string[],
     regiones: JSON.parse(s(sr.regiones) || "[]") as string[],

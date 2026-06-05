@@ -16,8 +16,14 @@ export default async function DashboardHome() {
   const user = await currentUser();
   if (!user) redirect("/login");
 
-  const { items, source } = await getLicitaciones(user.rubros);
+  const { items: todos, source } = await getLicitaciones(user.rubros);
   const saved = await listSavedCodes(user.id);
+
+  // Enforcement por plan: solo tipos incluidos en el plan.
+  const tipos: string[] = [];
+  if (user.capacidades.includes("licitaciones")) tipos.push("Licitación");
+  if (user.capacidades.includes("compra_agil")) tipos.push("Compra Ágil");
+  const items = todos.filter((l) => tipos.includes(l.tipo));
 
   const publicadas = items.filter((l) => l.estado === "Publicada");
   const topRelevantes = [...publicadas].sort((a, b) => b.score - a.score).slice(0, 5);

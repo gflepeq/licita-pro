@@ -18,6 +18,7 @@ export default async function AlertasPage() {
         whatsapp={user.alertWhatsapp}
         resumen={user.alertResumen}
         umbral={user.umbral}
+        capacidades={user.capacidades}
       />
     </div>
   );
