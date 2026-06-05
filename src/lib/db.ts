@@ -189,12 +189,13 @@ export async function createUser(input: {
   nombre: string;
   empresa?: string;
 }): Promise<number> {
-  // Primer usuario del sistema o emails de ADMIN_EMAILS → rol admin.
+  // Admin si está en ADMIN_EMAILS, o si es el primer usuario real (no el demo).
+  const esDemo = input.email.toLowerCase() === "demo@licitapro.cl";
   const total = n(
     (await run("SELECT COUNT(*) AS c FROM users")).rows[0]?.c
   );
   const role =
-    total === 0 || isAdminEmail(input.email) ? "admin" : "user";
+    isAdminEmail(input.email) || (!esDemo && total === 0) ? "admin" : "user";
   const r = await run(
     "INSERT INTO users (email, password_hash, nombre, empresa, role) VALUES (?, ?, ?, ?, ?) RETURNING id",
     [input.email.toLowerCase(), input.passwordHash, input.nombre, input.empresa ?? "", role]
