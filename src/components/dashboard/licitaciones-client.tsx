@@ -243,7 +243,7 @@ export function LicitacionesClient({
       <div className="grid gap-6 lg:grid-cols-[260px_1fr]">
         {/* Sidebar de filtros */}
         <aside
-          className={`${showFilters ? "block" : "hidden"} h-fit rounded-2xl border border-line bg-card p-5 lg:block`}
+          className={`${showFilters ? "block" : "hidden"} h-fit rounded-2xl border border-line bg-card p-5 lg:block lg:sticky lg:top-20 lg:max-h-[calc(100vh-6rem)] lg:overflow-y-auto lg:self-start`}
         >
           <div className="mb-4 flex items-center justify-between">
             <h2 className="font-semibold text-ink">Filtrar</h2>

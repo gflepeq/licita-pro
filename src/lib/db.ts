@@ -235,7 +235,9 @@ export async function getProfile(userId: number): Promise<UserProfile | null> {
   const { CAPACIDADES } = await import("@/lib/capacidades");
   const todas = CAPACIDADES.map((c) => c.key);
   const planRow = await getPlanById(s(u.plan));
-  const capacidades = esAdmin ? todas : planRow ? planRow.features : todas;
+  // Las capacidades dependen del PLAN (para todos, admin incluido). El rol admin
+  // solo da acceso al panel /admin. Si el plan no existe, no se castiga (todas).
+  const capacidades = planRow ? planRow.features : todas;
 
   return {
     id: n(u.id),
