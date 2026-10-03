@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Bell, Menu, Search, X } from "lucide-react";
 import { Sidebar } from "./sidebar";
@@ -44,7 +45,7 @@ export function DashboardShell({
 
       <div className="lg:pl-64">
         {/* Topbar */}
-        <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-line bg-card/80 px-4 backdrop-blur-md dark:bg-slate-900/80 sm:px-6">
+        <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-line bg-surface/80 px-4 backdrop-blur-md sm:px-6">
           <button
             onClick={() => setOpen(true)}
             className="grid h-9 w-9 place-items-center rounded-lg text-ink lg:hidden"
@@ -70,17 +71,20 @@ export function DashboardShell({
                 value={term}
                 onChange={(e) => setTerm(e.target.value)}
                 placeholder="Buscar licitaciones y compras ágiles…"
-                className="w-full rounded-lg border border-line bg-surface py-2 pl-10 pr-3 text-sm text-ink placeholder:text-muted focus:border-brand-400 focus:bg-card focus:outline-none focus:ring-2 focus:ring-brand-100 dark:bg-slate-800"
+                className="w-full rounded-xl border border-line bg-card py-2 pl-10 pr-3 text-sm text-ink placeholder:text-muted focus:border-brand-400 focus:bg-card focus:outline-none focus:ring-2 focus:ring-brand-100 dark:bg-slate-800"
               />
             </div>
           </form>
 
           <ThemeToggle />
-          <button className="relative grid h-9 w-9 place-items-center rounded-lg text-muted hover:bg-surface hover:text-ink">
+          <Link
+            href="/dashboard/alertas"
+            className="grid h-9 w-9 place-items-center rounded-lg text-muted hover:bg-surface hover:text-ink"
+            aria-label="Alertas"
+          >
             <Bell size={20} />
-            <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-brand-600 ring-2 ring-white dark:ring-slate-900" />
-          </button>
-          <span className="hidden h-9 w-9 place-items-center rounded-full bg-brand-600 text-sm font-bold text-white sm:grid">
+          </Link>
+          <span className="bg-brand-gradient hidden h-9 w-9 place-items-center rounded-full text-sm font-bold text-white sm:grid">
             {user.iniciales}
           </span>
         </header>

@@ -1,249 +1,280 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import {
   AlertTriangle,
+  ArrowLeft,
+  Building2,
   CalendarClock,
-  CheckCircle2,
-  FileCheck2,
+  ClipboardCheck,
+  ExternalLink,
+  Lightbulb,
   Loader2,
+  RefreshCw,
   Send,
   Sparkles,
-  Upload,
 } from "lucide-react";
-import { PageHeader } from "@/components/dashboard/ui";
+import { CierreBadge, TipoBadge } from "@/components/dashboard/ui";
+import { analizarAction, preguntarAction } from "@/lib/actions/ia";
+import { fmtCLPCorto, type Licitacion } from "@/lib/data";
+import type { Analisis, Turno } from "@/lib/ia";
 
-type Fase = "vacio" | "analizando" | "listo";
-
-const resultado = {
-  viabilidad: 82,
-  resumen:
-    "Licitación de suministro e instalación de luminarias LED para alumbrado público comunal. El presupuesto y los plazos son compatibles con tu perfil. Requiere experiencia comprobable en proyectos similares y certificación SEC vigente.",
-  certificados: [
-    { t: "Certificado de inscripción SEC vigente", ok: true },
-    { t: "Boleta de garantía de seriedad (3% del monto)", ok: true },
-    { t: "Experiencia en 2 proyectos similares (últimos 3 años)", ok: false },
-    { t: "Certificado de antecedentes laborales (F30-1)", ok: true },
-  ],
-  plazos: [
-    { t: "Cierre de recepción de ofertas", v: "12 jun 2026, 15:00" },
-    { t: "Apertura técnica y económica", v: "13 jun 2026, 10:00" },
-    { t: "Adjudicación estimada", v: "27 jun 2026" },
-    { t: "Plazo de ejecución", v: "90 días corridos" },
-  ],
-};
-
-const sugeridas = [
-  "¿Cuál es el criterio de evaluación con mayor ponderación?",
-  "¿Qué pasa si no tengo la experiencia mínima requerida?",
-  "¿El IVA está incluido en el presupuesto?",
-];
-
-export function AnalisisClient() {
-  const [fase, setFase] = useState<Fase>("vacio");
-  const [chat, setChat] = useState<{ rol: "user" | "ia"; txt: string }[]>([
-    {
-      rol: "ia",
-      txt: "He analizado las bases. Pregúntame lo que necesites sobre requisitos, plazos o criterios de evaluación.",
-    },
-  ]);
+export function AnalisisClient({ licitacion: l, disponible }: { licitacion: Licitacion; disponible: boolean }) {
+  const [a, setA] = useState<Analisis | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [cargando, setCargando] = useState(disponible);
+  const [chat, setChat] = useState<Turno[]>([]);
   const [input, setInput] = useState("");
+  const [pensando, setPensando] = useState(false);
+  const finChat = useRef<HTMLDivElement>(null);
 
+  const pedir = () =>
+    analizarAction(l.codigo)
+      .then((r) => (r.ok ? setA(r.data) : setError(r.error)))
+      .catch(() => setError("No se pudo conectar. Intenta nuevamente."))
+      .finally(() => setCargando(false));
+
+  // Reintento manual.
   const analizar = () => {
-    setFase("analizando");
-    setTimeout(() => setFase("listo"), 1600);
+    setCargando(true);
+    setError(null);
+    void pedir();
   };
+
+  // Primera carga (el estado inicial ya es "cargando").
+  useEffect(() => {
+    if (disponible) void pedir();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [l.codigo, disponible]);
+
+  useEffect(() => {
+    finChat.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }, [chat, pensando]);
 
   const enviar = (texto: string) => {
-    const t = texto.trim();
-    if (!t) return;
-    setChat((c) => [...c, { rol: "user", txt: t }]);
+    const q = texto.trim();
+    if (!q || pensando) return;
+    const historial = chat;
+    setChat((c) => [...c, { rol: "user", txt: q }]);
     setInput("");
-    setTimeout(() => {
-      setChat((c) => [
-        ...c,
-        {
-          rol: "ia",
-          txt: "Según las bases, el criterio económico pondera 40%, la experiencia 35% y el cumplimiento técnico 25%. Te recomiendo reforzar la experiencia para mejorar tu puntaje.",
-        },
-      ]);
-    }, 800);
+    setPensando(true);
+    preguntarAction(l.codigo, historial, q)
+      .then((r) => setChat((c) => [...c, { rol: "ia", txt: r.ok ? r.data : r.error }]))
+      .catch(() => setChat((c) => [...c, { rol: "ia", txt: "No se pudo conectar. Intenta nuevamente." }]))
+      .finally(() => setPensando(false));
   };
+
+  const tono =
+    !a ? "" : a.viabilidad >= 70 ? "text-accent-600" : a.viabilidad >= 45 ? "text-amber-600" : "text-red-600";
+  const anillo =
+    !a ? "" : a.viabilidad >= 70 ? "stroke-accent-500" : a.viabilidad >= 45 ? "stroke-amber-500" : "stroke-red-500";
 
   return (
     <div>
-      <PageHeader
-        title="Análisis de bases con IA"
-        subtitle="Sube el PDF de las bases y obtén requisitos, plazos y viabilidad en segundos."
-      />
+      <Link
+        href="/dashboard/analisis"
+        className="mb-4 inline-flex items-center gap-1 text-sm font-medium text-muted hover:text-ink"
+      >
+        <ArrowLeft size={15} /> Elegir otra oportunidad
+      </Link>
 
-      {fase === "vacio" && (
-        <button
-          onClick={analizar}
-          className="flex w-full flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed border-brand-200 bg-brand-50/40 py-16 text-center transition-colors hover:bg-brand-50"
-        >
-          <span className="grid h-14 w-14 place-items-center rounded-2xl bg-brand-600 text-white">
-            <Upload size={26} />
-          </span>
-          <span className="text-base font-semibold text-ink">
-            Arrastra el PDF de las bases o haz clic para subir
-          </span>
-          <span className="text-sm text-muted">
-            Formatos PDF · hasta 25 MB · (demo: usa un ejemplo)
-          </span>
-        </button>
-      )}
-
-      {fase === "analizando" && (
-        <div className="flex flex-col items-center justify-center gap-3 rounded-2xl border border-line bg-card py-20">
-          <Loader2 className="animate-spin text-brand-600" size={32} />
-          <p className="text-sm font-medium text-ink">
-            Analizando bases con IA…
-          </p>
-          <p className="text-xs text-muted">
-            Extrayendo requisitos, plazos y criterios de evaluación
-          </p>
+      {/* Ficha */}
+      <div className="card p-5 sm:p-6">
+        <div className="flex flex-wrap items-center gap-2">
+          <TipoBadge tipo={l.tipo} tipoLic={l.tipoLic} />
+          <span className="font-mono text-xs text-muted">{l.codigo}</span>
+          <CierreBadge cierre={l.cierre} cierreHora={l.cierreHora} />
         </div>
-      )}
+        <h1 className="mt-2 text-xl font-bold leading-snug tracking-tight text-ink sm:text-2xl">{l.nombre}</h1>
+        <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted">
+          <span className="inline-flex items-center gap-1">
+            <Building2 size={14} /> {l.organismo}
+          </span>
+          <span className="num font-semibold text-ink">{l.monto > 0 ? fmtCLPCorto(l.monto) : "Monto no publicado"}</span>
+          {l.url && (
+            <a href={l.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-brand-600">
+              Ficha oficial <ExternalLink size={13} />
+            </a>
+          )}
+        </div>
+      </div>
 
-      {fase === "listo" && (
-        <div className="grid gap-5 lg:grid-cols-3">
+      {!disponible ? (
+        <div className="card mt-5 p-6 text-sm text-muted">
+          El análisis con IA se activará cuando el administrador configure la clave de la API de Claude en el servidor
+          (variable <code className="rounded bg-surface px-1">ANTHROPIC_API_KEY</code>).
+        </div>
+      ) : cargando && !a ? (
+        <div className="card mt-5 flex flex-col items-center px-6 py-14 text-center">
+          <Loader2 size={28} className="animate-spin text-brand-600" />
+          <p className="mt-4 font-semibold text-ink">Analizando la oportunidad para tu empresa…</p>
+          <p className="mt-1 text-sm text-muted">Revisamos productos, plazos y el organismo. Toma unos segundos.</p>
+        </div>
+      ) : error ? (
+        <div className="card mt-5 flex flex-col items-center px-6 py-10 text-center">
+          <AlertTriangle size={26} className="text-amber-500" />
+          <p className="mt-3 font-semibold text-ink">{error}</p>
+          <button
+            onClick={analizar}
+            className="mt-4 inline-flex items-center gap-2 rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white"
+          >
+            <RefreshCw size={15} /> Reintentar
+          </button>
+        </div>
+      ) : a ? (
+        <div className="mt-5 grid gap-5 lg:grid-cols-3">
           <div className="space-y-5 lg:col-span-2">
-            {/* Viabilidad */}
-            <div className="rounded-2xl border border-line bg-card p-5">
-              <div className="flex items-center gap-4">
-                <div className="grid h-16 w-16 shrink-0 place-items-center rounded-full bg-accent-500/10">
-                  <span className="text-lg font-bold text-accent-600">
-                    {resultado.viabilidad}
-                  </span>
+            {/* Veredicto */}
+            <div className="card flex flex-col gap-5 p-5 sm:flex-row sm:items-center sm:p-6">
+              <div className="relative grid h-28 w-28 shrink-0 place-items-center self-center">
+                <svg viewBox="0 0 36 36" className="absolute inset-0 -rotate-90">
+                  <circle cx="18" cy="18" r="15.5" fill="none" strokeWidth="3" className="stroke-line" />
+                  <circle
+                    cx="18"
+                    cy="18"
+                    r="15.5"
+                    fill="none"
+                    strokeWidth="3"
+                    strokeLinecap="round"
+                    strokeDasharray={`${(a.viabilidad / 100) * 97.4} 97.4`}
+                    className={anillo}
+                  />
+                </svg>
+                <div className="text-center">
+                  <p className={`num text-3xl font-bold ${tono}`}>{a.viabilidad}</p>
+                  <p className="text-[10px] font-semibold uppercase tracking-wide text-muted">viabilidad</p>
                 </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <Sparkles size={16} className="text-brand-600" />
-                    <h2 className="font-semibold text-ink">
-                      Viabilidad para postular: Alta
-                    </h2>
-                  </div>
-                  <p className="mt-1 text-sm leading-relaxed text-muted">
-                    {resultado.resumen}
-                  </p>
-                </div>
+              </div>
+              <div>
+                <p className={`text-sm font-bold uppercase tracking-wide ${tono}`}>{a.veredicto}</p>
+                <p className="mt-1 text-[15px] leading-relaxed text-ink">{a.resumen}</p>
+                <ul className="mt-3 space-y-1">
+                  {a.razones.map((r, i) => (
+                    <li key={i} className="flex gap-2 text-sm text-ink/80">
+                      <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-brand-600" /> {r}
+                    </li>
+                  ))}
+                </ul>
               </div>
             </div>
 
-            {/* Certificados */}
-            <div className="rounded-2xl border border-line bg-card p-5">
-              <div className="mb-3 flex items-center gap-2">
-                <FileCheck2 size={18} className="text-brand-600" />
-                <h2 className="font-semibold text-ink">Requisitos y certificados</h2>
-              </div>
-              <ul className="space-y-2.5">
-                {resultado.certificados.map((c) => (
-                  <li key={c.t} className="flex items-start gap-2.5 text-sm">
-                    {c.ok ? (
-                      <CheckCircle2
-                        size={18}
-                        className="mt-0.5 shrink-0 text-accent-500"
-                      />
-                    ) : (
-                      <AlertTriangle
-                        size={18}
-                        className="mt-0.5 shrink-0 text-amber-500"
-                      />
-                    )}
-                    <span className={c.ok ? "text-ink" : "text-ink"}>
-                      {c.t}
-                      {!c.ok && (
-                        <span className="ml-2 rounded-full bg-amber-50 px-2 py-0.5 text-xs font-semibold text-amber-600">
-                          Por verificar
-                        </span>
-                      )}
-                    </span>
+            {/* Requisitos */}
+            <section className="card p-5 sm:p-6">
+              <h2 className="flex items-center gap-2 font-semibold text-ink">
+                <ClipboardCheck size={17} className="text-brand-600" /> Requisitos y documentos probables
+              </h2>
+              <ul className="mt-3 divide-y divide-line">
+                {a.requisitos.map((r, i) => (
+                  <li key={i} className="py-2.5">
+                    <p className="text-sm font-medium text-ink">{r.requisito}</p>
+                    {r.detalle && <p className="text-xs text-muted">{r.detalle}</p>}
                   </li>
                 ))}
               </ul>
+            </section>
+
+            <div className="grid gap-5 sm:grid-cols-2">
+              <section className="card p-5">
+                <h2 className="flex items-center gap-2 font-semibold text-ink">
+                  <AlertTriangle size={17} className="text-amber-500" /> Riesgos a revisar
+                </h2>
+                <ul className="mt-3 space-y-2">
+                  {a.riesgos.map((r, i) => (
+                    <li key={i} className="text-sm text-ink/80">
+                      · {r}
+                    </li>
+                  ))}
+                </ul>
+              </section>
+              <section className="card p-5">
+                <h2 className="flex items-center gap-2 font-semibold text-ink">
+                  <CalendarClock size={17} className="text-brand-600" /> Hitos
+                </h2>
+                <ul className="mt-3 space-y-2">
+                  {a.fechas.map((f, i) => (
+                    <li key={i} className="flex justify-between gap-3 text-sm">
+                      <span className="text-ink/80">{f.hito}</span>
+                      <span className="num shrink-0 font-semibold text-ink">{f.fecha}</span>
+                    </li>
+                  ))}
+                </ul>
+              </section>
             </div>
 
-            {/* Plazos */}
-            <div className="rounded-2xl border border-line bg-card p-5">
-              <div className="mb-3 flex items-center gap-2">
-                <CalendarClock size={18} className="text-brand-600" />
-                <h2 className="font-semibold text-ink">Plazos clave</h2>
-              </div>
-              <div className="grid gap-3 sm:grid-cols-2">
-                {resultado.plazos.map((p) => (
-                  <div key={p.t} className="rounded-xl bg-surface p-3">
-                    <p className="text-xs text-muted">{p.t}</p>
-                    <p className="mt-0.5 text-sm font-semibold text-ink">{p.v}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
+            <section className="card bg-brand-600/[0.03] p-5 sm:p-6">
+              <h2 className="flex items-center gap-2 font-semibold text-ink">
+                <Lightbulb size={17} className="text-brand-600" /> Cómo armar una oferta competitiva
+              </h2>
+              <p className="mt-2 text-sm leading-relaxed text-ink/85">{a.estrategia}</p>
+            </section>
+            <p className="text-xs text-muted">
+              Análisis generado con IA a partir de los datos publicados en Mercado Público. Confirma siempre los
+              requisitos en las bases oficiales.
+            </p>
           </div>
 
-          {/* Asistente IA */}
-          <div className="flex h-fit flex-col rounded-2xl border border-line bg-card">
-            <div className="flex items-center gap-2 border-b border-line px-4 py-3">
-              <span className="grid h-8 w-8 place-items-center rounded-lg bg-brand-600 text-white">
-                <Sparkles size={16} />
-              </span>
-              <div>
-                <p className="text-sm font-semibold text-ink">Asistente IA</p>
-                <p className="text-xs text-muted">Pregunta sobre estas bases</p>
-              </div>
+          {/* Chat */}
+          <aside className="card flex h-fit max-h-[640px] flex-col lg:sticky lg:top-20">
+            <div className="border-b border-line px-4 py-3">
+              <p className="flex items-center gap-2 font-semibold text-ink">
+                <Sparkles size={16} className="text-brand-600" /> Pregúntale a la IA
+              </p>
+              <p className="text-xs text-muted">Sobre esta oportunidad y tu empresa.</p>
             </div>
-
-            <div className="flex max-h-80 flex-col gap-3 overflow-y-auto p-4">
-              {chat.map((m, i) => (
+            <div className="flex-1 space-y-3 overflow-y-auto p-4">
+              {chat.length === 0 &&
+                a.preguntas.map((p) => (
+                  <button
+                    key={p}
+                    onClick={() => enviar(p)}
+                    className="block w-full rounded-xl border border-line px-3 py-2 text-left text-sm text-ink/80 hover:border-brand-600/40 hover:bg-surface"
+                  >
+                    {p}
+                  </button>
+                ))}
+              {chat.map((t, i) => (
                 <div
                   key={i}
-                  className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 text-sm ${
-                    m.rol === "ia"
-                      ? "bg-surface text-ink"
-                      : "ml-auto bg-brand-600 text-white"
+                  className={`max-w-[90%] whitespace-pre-line rounded-2xl px-3.5 py-2.5 text-sm ${
+                    t.rol === "user" ? "ml-auto bg-brand-600 text-white" : "bg-surface text-ink"
                   }`}
                 >
-                  {m.txt}
+                  {t.txt}
                 </div>
               ))}
+              {pensando && (
+                <div className="inline-flex items-center gap-2 rounded-2xl bg-surface px-3.5 py-2.5 text-sm text-muted">
+                  <Loader2 size={14} className="animate-spin" /> Pensando…
+                </div>
+              )}
+              <div ref={finChat} />
             </div>
-
-            <div className="flex flex-wrap gap-1.5 px-4 pb-2">
-              {sugeridas.map((s) => (
-                <button
-                  key={s}
-                  onClick={() => enviar(s)}
-                  className="rounded-full border border-line px-2.5 py-1 text-xs text-muted hover:bg-surface"
-                >
-                  {s}
-                </button>
-              ))}
-            </div>
-
             <form
               onSubmit={(e) => {
                 e.preventDefault();
                 enviar(input);
               }}
-              className="flex items-center gap-2 border-t border-line p-3"
+              className="flex gap-2 border-t border-line p-3"
             >
               <input
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 placeholder="Escribe tu pregunta…"
-                className="flex-1 rounded-lg border border-line bg-surface px-3 py-2 text-sm focus:border-brand-400 focus:bg-card focus:outline-none focus:ring-2 focus:ring-brand-100"
+                className="min-w-0 flex-1 rounded-xl border border-line bg-surface px-3 py-2 text-sm text-ink placeholder:text-muted focus:border-brand-600 focus:outline-none"
               />
               <button
                 type="submit"
-                className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-brand-600 text-white hover:bg-brand-700"
+                disabled={pensando || !input.trim()}
+                className="grid h-9 w-9 place-items-center rounded-xl bg-brand-600 text-white disabled:opacity-50"
                 aria-label="Enviar"
               >
-                <Send size={16} />
+                <Send size={15} />
               </button>
             </form>
-          </div>
+          </aside>
         </div>
-      )}
+      ) : null}
     </div>
   );
 }

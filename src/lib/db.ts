@@ -20,6 +20,7 @@ function getClient(): Sql {
       ssl: /[?&]sslmode=disable\b/.test(url) ? false : "require",
       max: 5,
       idle_timeout: 20,
+      onnotice: () => {}, // "already exists, skipping" de los CREATE IF NOT EXISTS
     });
   }
   return g.__pg;
@@ -81,6 +82,31 @@ const SCHEMA: string[] = [
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     UNIQUE(user_id, codigo)
   )`,
+  // Catálogo sincronizado desde Mercado Público (ver src/lib/mp-sync.ts).
+  // Fechas en hora de Chile (TIMESTAMP sin zona), igual que la API.
+  `CREATE TABLE IF NOT EXISTS oportunidades (
+    codigo TEXT PRIMARY KEY,
+    tipo TEXT NOT NULL,
+    nombre TEXT NOT NULL,
+    descripcion TEXT NOT NULL DEFAULT '',
+    organismo TEXT NOT NULL DEFAULT '',
+    unidad TEXT NOT NULL DEFAULT '',
+    region TEXT NOT NULL DEFAULT '',
+    monto BIGINT NOT NULL DEFAULT 0,
+    moneda TEXT NOT NULL DEFAULT 'CLP',
+    estado TEXT NOT NULL DEFAULT 'Publicada',
+    tipo_lic TEXT NOT NULL DEFAULT '',
+    publicada TIMESTAMP,
+    cierre TIMESTAMP,
+    categorias TEXT NOT NULL DEFAULT '',
+    unspsc TEXT NOT NULL DEFAULT '',
+    items TEXT NOT NULL DEFAULT '[]',
+    detalle_at TIMESTAMPTZ,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  )`,
+  `CREATE INDEX IF NOT EXISTS oportunidades_activas ON oportunidades (estado, cierre)`,
+  `CREATE INDEX IF NOT EXISTS oportunidades_pendientes ON oportunidades (cierre)
+     WHERE detalle_at IS NULL AND tipo = 'Licitación'`,
 ];
 
 // Crea las tablas (idempotente) una sola vez por proceso.
@@ -101,6 +127,11 @@ function ready(): Promise<Sql> {
     })();
   }
   return g.__pgReady;
+}
+
+/** Cliente Postgres listo (tablas creadas), para módulos con consultas propias. */
+export function getSql(): Promise<Sql> {
+  return ready();
 }
 
 // Convierte placeholders estilo SQLite (?) a Postgres ($1, $2, …).
@@ -540,32 +571,6 @@ export async function paymentStats() {
 }
 
 // Genera pagos de ejemplo si la tabla está vacía (datos ilustrativos).
-export async function seedPaymentsIfEmpty() {
-  const c = n((await run("SELECT COUNT(*) AS c FROM payments")).rows[0]?.c);
-  if (c > 0) return;
-  const precios: Record<string, number> = {
-    Trial: 4990,
-    "Plan Detecta": 14990,
-    "Plan Gana": 34990,
-    Gana: 34990,
-  };
-  const users = await run("SELECT id, plan FROM users");
-  for (const row of users.rows) {
-    const o = row as Row;
-    const plan = s(o.plan);
-    const monto = precios[plan] ?? 4990;
-    // 1-3 pagos por usuario en meses recientes
-    const nPagos = 1 + (n(o.id) % 3);
-    for (let m = 0; m < nPagos; m++) {
-      await run(
-        `INSERT INTO payments (user_id, plan, monto, estado, metodo, fecha)
-         VALUES (?, ?, ?, 'pagado', ?, now() + (?::interval))`,
-        [n(o.id), plan, monto, m % 2 ? "Webpay" : "Transferencia", `-${m} months`]
-      );
-    }
-  }
-}
-
 // ---------- Planes (CRUD) ----------
 import { PLANES_SEED, type Plan } from "@/lib/planes";
 

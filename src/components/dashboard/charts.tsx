@@ -3,107 +3,81 @@
 import {
   Area,
   AreaChart,
-  Cell,
-  Pie,
-  PieChart,
+  Bar,
+  BarChart,
+  CartesianGrid,
   ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
 } from "recharts";
-import { distribucionCategoria, serieDeteccion } from "@/lib/data";
 
-const COLORS = ["#2563eb", "#10b981", "#f59e0b", "#8b5cf6", "#64748b"];
+const tooltip = {
+  contentStyle: {
+    borderRadius: 12,
+    border: "1px solid var(--line)",
+    background: "var(--card)",
+    color: "var(--ink)",
+    fontSize: 12,
+    boxShadow: "var(--shadow-pop)",
+  },
+  labelStyle: { color: "var(--muted)", marginBottom: 4 },
+};
+const tick = { fill: "#94a3b8", fontSize: 11 };
+const nf = new Intl.NumberFormat("es-CL");
 
-export function DeteccionChart() {
+/** Oportunidades publicadas por día (últimos 14 días). */
+export function PublicacionesChart({ data }: { data: { dia: string; total: number }[] }) {
+  const rows = data.map((d) => ({
+    ...d,
+    label: new Date(d.dia + "T12:00:00").toLocaleDateString("es-CL", { day: "2-digit", month: "short" }),
+  }));
   return (
-    <ResponsiveContainer width="100%" height={260}>
-      <AreaChart data={serieDeteccion} margin={{ left: -20, right: 8, top: 8 }}>
+    <div className="text-brand-600">
+    <ResponsiveContainer width="100%" height={240}>
+      <AreaChart data={rows} margin={{ left: -14, right: 8, top: 8 }}>
         <defs>
-          <linearGradient id="gDet" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#2563eb" stopOpacity={0.25} />
-            <stop offset="100%" stopColor="#2563eb" stopOpacity={0} />
-          </linearGradient>
-          <linearGradient id="gRel" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#10b981" stopOpacity={0.3} />
-            <stop offset="100%" stopColor="#10b981" stopOpacity={0} />
+          <linearGradient id="gPub" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="currentColor" stopOpacity={0.28} />
+            <stop offset="100%" stopColor="currentColor" stopOpacity={0} />
           </linearGradient>
         </defs>
-        <XAxis
-          dataKey="mes"
-          tickLine={false}
-          axisLine={false}
-          tick={{ fill: "#64748b", fontSize: 12 }}
-        />
-        <YAxis tickLine={false} axisLine={false} tick={{ fill: "#64748b", fontSize: 12 }} />
-        <Tooltip
-          contentStyle={{
-            borderRadius: 12,
-            border: "1px solid #e2e8f0",
-            fontSize: 12,
-          }}
-        />
+        <CartesianGrid vertical={false} stroke="#94a3b8" strokeOpacity={0.18} strokeDasharray="3 3" />
+        <XAxis dataKey="label" tickLine={false} axisLine={false} tick={tick} interval="preserveStartEnd" />
+        <YAxis tickLine={false} axisLine={false} tick={tick} width={44} />
+        <Tooltip {...tooltip} formatter={(v) => [nf.format(Number(v)), "Publicadas"]} />
         <Area
           type="monotone"
-          dataKey="detectadas"
-          name="Detectadas"
-          stroke="#2563eb"
-          strokeWidth={2}
-          fill="url(#gDet)"
-        />
-        <Area
-          type="monotone"
-          dataKey="relevantes"
-          name="Relevantes"
-          stroke="#10b981"
-          strokeWidth={2}
-          fill="url(#gRel)"
+          dataKey="total"
+          stroke="currentColor"
+          strokeWidth={2.2}
+          fill="url(#gPub)"
         />
       </AreaChart>
     </ResponsiveContainer>
+    </div>
   );
 }
 
-export function CategoriaChart() {
+/** Oportunidades abiertas por región. */
+export function RegionesChart({ data }: { data: { region: string; total: number }[] }) {
   return (
-    <div className="flex items-center gap-4">
-      <ResponsiveContainer width="55%" height={180}>
-        <PieChart>
-          <Pie
-            data={distribucionCategoria}
-            dataKey="valor"
-            nameKey="categoria"
-            innerRadius={45}
-            outerRadius={75}
-            paddingAngle={2}
-          >
-            {distribucionCategoria.map((_, i) => (
-              <Cell key={i} fill={COLORS[i % COLORS.length]} />
-            ))}
-          </Pie>
-          <Tooltip
-            contentStyle={{
-              borderRadius: 12,
-              border: "1px solid #e2e8f0",
-              fontSize: 12,
-            }}
-          />
-        </PieChart>
-      </ResponsiveContainer>
-      <ul className="flex-1 space-y-2">
-        {distribucionCategoria.map((c, i) => (
-          <li key={c.categoria} className="flex items-center justify-between text-sm">
-            <span className="flex items-center gap-2 text-ink">
-              <span
-                className="h-2.5 w-2.5 rounded-full"
-                style={{ background: COLORS[i % COLORS.length] }}
-              />
-              {c.categoria}
-            </span>
-            <span className="font-semibold text-muted">{c.valor}%</span>
-          </li>
-        ))}
-      </ul>
+    <div className="text-brand-600">
+    <ResponsiveContainer width="100%" height={Math.max(180, data.length * 30)}>
+      <BarChart data={data} layout="vertical" margin={{ left: 0, right: 16, top: 0, bottom: 0 }}>
+        <XAxis type="number" hide />
+        <YAxis
+          type="category"
+          dataKey="region"
+          tickLine={false}
+          axisLine={false}
+          tick={tick}
+          width={110}
+        />
+        <Tooltip {...tooltip} cursor={{ fill: "#94a3b8", fillOpacity: 0.1 }} formatter={(v) => [nf.format(Number(v)), "Abiertas"]} />
+        <Bar dataKey="total" fill="currentColor" radius={[0, 6, 6, 0]} barSize={14} />
+      </BarChart>
+    </ResponsiveContainer>
     </div>
   );
 }

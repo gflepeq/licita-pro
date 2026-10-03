@@ -35,7 +35,7 @@ export function Logo({
         }`}
       >
         {head}
-        <span className="text-brand-600">{tail}</span>
+        <span className={dark ? "text-brand-400" : "text-brand-600"}>{tail}</span>
       </span>
     </Link>
   );

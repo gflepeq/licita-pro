@@ -1,10 +1,9 @@
 import { Receipt, CheckCircle2, Wallet } from "lucide-react";
 import { PageHeader, StatCard } from "@/components/dashboard/ui";
-import { listPayments, paymentStats, seedPaymentsIfEmpty } from "@/lib/db";
+import { listPayments, paymentStats } from "@/lib/db";
 import { fmtCLP } from "@/lib/data";
 
 export default async function AdminPagos() {
-  await seedPaymentsIfEmpty();
   const stats = await paymentStats();
   const pagos = await listPayments();
 

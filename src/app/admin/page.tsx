@@ -1,14 +1,21 @@
 import Link from "next/link";
-import { CheckCircle2, Bookmark, Users, Wallet } from "lucide-react";
+import { CheckCircle2, Bookmark, Radio, Users, Wallet } from "lucide-react";
 import { PageHeader, StatCard } from "@/components/dashboard/ui";
-import { adminStats, listUsers, seedPaymentsIfEmpty, getPlanes } from "@/lib/db";
+import { adminStats, listUsers, getPlanes } from "@/lib/db";
 import { fmtCLP } from "@/lib/data";
+import { resumenCatalogo } from "@/lib/oportunidades";
+import { getSyncStatus } from "@/lib/mp-sync";
+
+export const dynamic = "force-dynamic";
+const nf = new Intl.NumberFormat("es-CL");
+const hora = (iso: string | null) =>
+  iso ? new Date(iso).toLocaleString("es-CL", { timeZone: "America/Santiago", dateStyle: "short", timeStyle: "short" }) : "—";
 
 export default async function AdminHome() {
-  await seedPaymentsIfEmpty();
   const stats = await adminStats();
   const usuarios = (await listUsers()).slice(0, 6);
   const PLANES = await getPlanes({ all: true });
+  const [catalogo, sync] = [await resumenCatalogo(), getSyncStatus()];
 
   const colores = ["bg-slate-400", "bg-brand-500", "bg-accent-500", "bg-amber-500", "bg-violet-500"];
   const totalPlan = stats.porPlan.reduce((s, p) => s + p.total, 0) || 1;
@@ -40,6 +47,40 @@ export default async function AdminHome() {
           value={fmtCLP(stats.recaudado)}
           tone="accent"
         />
+      </div>
+
+      {/* Sincronización con Mercado Público */}
+      <div className="card mt-6 p-5">
+        <h2 className="flex items-center gap-2 font-semibold text-ink">
+          <Radio size={16} className="text-accent-600" /> Sincronización con Mercado Público
+        </h2>
+        <dl className="mt-4 grid gap-4 text-sm sm:grid-cols-2 lg:grid-cols-4">
+          <div>
+            <dt className="text-xs text-muted">Abiertas en catálogo</dt>
+            <dd className="num mt-0.5 text-lg font-bold text-ink">{nf.format(catalogo.abiertas)}</dd>
+            <dd className="text-xs text-muted">
+              {nf.format(catalogo.licitaciones)} licitaciones · {nf.format(catalogo.comprasAgiles)} compras ágiles
+            </dd>
+          </div>
+          <div>
+            <dt className="text-xs text-muted">Licitaciones sin detalle aún</dt>
+            <dd className="num mt-0.5 text-lg font-bold text-ink">{nf.format(catalogo.pendientesDetalle)}</dd>
+            <dd className="text-xs text-muted">{nf.format(sync.detalles)} enriquecidas desde el último reinicio</dd>
+          </div>
+          <div>
+            <dt className="text-xs text-muted">Lista de licitaciones</dt>
+            <dd className="mt-0.5 font-semibold text-ink">{hora(sync.listaAt)}</dd>
+            <dd className="text-xs text-muted">Compras ágiles: {hora(sync.caAt)} · completo {hora(sync.caCompletoAt)}</dd>
+          </div>
+          <div>
+            <dt className="text-xs text-muted">Errores</dt>
+            <dd className="num mt-0.5 text-lg font-bold text-ink">{sync.errores}</dd>
+            <dd className="line-clamp-2 text-xs text-muted">{sync.ultimoError ?? "Sin errores"}</dd>
+          </div>
+        </dl>
+        {!sync.iniciado && (
+          <p className="mt-3 text-xs text-amber-600">La sincronización no está activa en este proceso (falta ticket o DATABASE_URL).</p>
+        )}
       </div>
 
       <div className="mt-6 grid gap-4 lg:grid-cols-2">

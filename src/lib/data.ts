@@ -21,6 +21,22 @@ export interface Licitacion {
   descripcion?: string; // detalle de la licitación/compra ágil
   rubrosMatch?: string[]; // rubros del usuario con los que coincide
   garantia?: string; // tipo de garantía (pendiente: API de Compra Ágil/beta)
+  cierreHora?: string; // "YYYY-MM-DDTHH:MM" hora de Chile
+  unidad?: string; // unidad de compra del organismo
+  tipoLic?: string; // L1, LE, LP, LQ, LR… (tipo de licitación)
+  categorias?: string[]; // categorías UNSPSC de los productos
+  items?: ItemLicitacion[]; // productos solicitados
+  url?: string; // ficha pública en mercadopublico.cl
+  enriquecida?: boolean; // false mientras se descarga el detalle
+}
+
+export interface ItemLicitacion {
+  nombre: string;
+  descripcion: string;
+  categoria: string;
+  unspsc: string;
+  cantidad: number;
+  unidad: string;
 }
 
 export const fmtCLP = (n: number) =>
@@ -30,18 +46,42 @@ export const fmtCLP = (n: number) =>
     maximumFractionDigits: 0,
   }).format(n);
 
+/** Monto abreviado: $850 mil, $12,4 MM, $1.250 MM. */
+export const fmtCLPCorto = (n: number) => {
+  if (n >= 1e9) return `$${new Intl.NumberFormat("es-CL", { maximumFractionDigits: 0 }).format(n / 1e6)} MM`;
+  if (n >= 1e6) return `$${new Intl.NumberFormat("es-CL", { maximumFractionDigits: 1 }).format(n / 1e6)} MM`;
+  if (n >= 1e3) return `$${new Intl.NumberFormat("es-CL", { maximumFractionDigits: 0 }).format(n / 1e3)} mil`;
+  return fmtCLP(n);
+};
+
 export const fmtFecha = (iso: string) =>
-  new Date(iso + "T00:00:00").toLocaleDateString("es-CL", {
+  new Date(iso.slice(0, 10) + "T12:00:00").toLocaleDateString("es-CL", {
     day: "2-digit",
     month: "short",
     year: "numeric",
   });
 
+// "Hoy" en Chile como YYYY-MM-DD (independiente de la zona del servidor/navegador).
+export const hoyChile = () =>
+  new Intl.DateTimeFormat("en-CA", { timeZone: "America/Santiago" }).format(new Date());
+
+/** Días calendario entre hoy (Chile) y la fecha (YYYY-MM-DD…). */
 export const diasRestantes = (iso: string) => {
-  const hoy = new Date("2026-06-02T00:00:00");
-  const fin = new Date(iso + "T00:00:00");
+  const hoy = new Date(hoyChile() + "T00:00:00Z");
+  const fin = new Date(iso.slice(0, 10) + "T00:00:00Z");
   return Math.round((fin.getTime() - hoy.getTime()) / 86400000);
 };
+
+/** "Cierra hoy 15:00", "Cierra mañana", "Cierra en 5 días", "Cerrada". */
+export function textoCierre(cierreHora: string | undefined, cierre: string): string {
+  if (!cierre) return "Sin fecha de cierre";
+  const d = diasRestantes(cierre);
+  const hora = cierreHora && cierreHora.length >= 16 ? cierreHora.slice(11, 16) : "";
+  if (d < 0) return "Cerrada";
+  if (d === 0) return hora ? `Cierra hoy ${hora}` : "Cierra hoy";
+  if (d === 1) return hora ? `Cierra mañana ${hora}` : "Cierra mañana";
+  return `Cierra en ${d} días`;
+}
 
 export const licitaciones: Licitacion[] = [
   {
