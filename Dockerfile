@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-# Imagen autocontenida para LiciApp (Next.js 16 + Postgres/Supabase).
+# Imagen autocontenida para LiciApp (Next.js 16 + Postgres en Elestio).
 # Usa la salida "standalone" de Next. Variables necesarias en runtime:
 # AUTH_SECRET, MERCADO_PUBLICO_TICKET, DATABASE_URL, APP_URL, FLOW_*, ADMIN_EMAILS.
 
@@ -15,7 +15,6 @@ RUN npm ci
 # --- Build ---
 FROM base AS builder
 WORKDIR /app
-ENV BUILD_STANDALONE=1
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN npm run build

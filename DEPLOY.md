@@ -1,57 +1,45 @@
-# Deploy de Licitapro
+# Deploy de LiciApp (Elestio)
 
-La base de datos usa **libSQL** (`@libsql/client`):
-- **Local:** archivo SQLite en `./data` (o `DATA_DIR`). No requiere configurar nada.
-- **Producción:** **Turso** (libSQL gestionado, SQLite-compatible) vía
-  `TURSO_DATABASE_URL` + `TURSO_AUTH_TOKEN`.
+LiciApp corre en **Elestio**, en el servicio CI/CD `cicd-nfyuh`, con dos pipelines:
 
-Esto permite desplegar en **Vercel** (serverless) de forma **gratuita y permanente**.
-
-## Variables de entorno
-
-| Variable | Dónde | Descripción |
+| Pipeline | Qué es | Detalle |
 |---|---|---|
-| `AUTH_SECRET` | siempre | Secreto de sesiones. `node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"` |
-| `MERCADO_PUBLICO_TICKET` | siempre | Ticket de la API de ChileCompra |
-| `TURSO_DATABASE_URL` | producción | URL `libsql://...` de la base en Turso |
-| `TURSO_AUTH_TOKEN` | producción | Token de acceso a la base Turso |
+| `liciapp` | La app (Next.js, imagen Docker de este repo) | GitHub `gflepeq/licita-pro`, rama `main`. Cada `git push` a `main` redespliega solo. |
+| `liciapp-db` | Postgres 18 + pgAdmin (plantilla de Elestio) | Contraseña = `SOFTWARE_PASSWORD` en sus variables de entorno. |
 
----
+**Dominios:** `liciapp.cl` y `www.liciapp.cl` (SSL automático de Elestio). DNS en mhost.cl:
+`liciapp.cl` → A `159.195.107.47` · `www.liciapp.cl` → CNAME `liciapp-u6837.vm.elestio.app`.
 
-## Opción A — Vercel + Turso (recomendada: gratis y permanente)
+**Puertos (`liciapp`):** HTTPS 443 → host `172.17.0.1:3003` → contenedor `3000`.
+**Puertos (`liciapp-db`):** Postgres en `172.17.0.1:5433` (interno) y TCP público `25433`; pgAdmin en `8091`.
 
-### 1. Crear la base en Turso
+## Variables de entorno (`liciapp` → Build & Deploy → Environment variables)
+
+| Variable | Descripción |
+|---|---|
+| `AUTH_SECRET` | Secreto de sesiones. `node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"` |
+| `MERCADO_PUBLICO_TICKET` | Ticket de la API de ChileCompra |
+| `DATABASE_URL` | `postgresql://postgres:<SOFTWARE_PASSWORD>@172.17.0.1:5433/postgres?sslmode=disable` |
+| `APP_URL` | `https://liciapp.cl` |
+| `ADMIN_EMAILS` | Emails con acceso a `/admin`, separados por coma |
+| `FLOW_API_KEY`, `FLOW_SECRET_KEY`, `FLOW_API_URL` | Pagos con Flow.cl (opcional) |
+| `COMPRA_AGIL_API_BASE`, `COMPRA_AGIL_API_TICKET` | API de Compra Ágil (opcional; sin ella el plan Trial no ve oportunidades) |
+
+Las tablas se crean solas en el primer arranque. Tras cambiar variables: **Apply Changes**.
+
+## Admin
+
+El primer usuario que se registra (o cualquiera listado en `ADMIN_EMAILS`) queda como admin.
+Para promover a otro usuario, con `DATABASE_URL` apuntando al puerto público:
+
 ```bash
-# instala el CLI (https://docs.turso.tech)
-curl -sSfL https://get.tur.so/install.sh | bash
-turso auth signup            # crea cuenta (o turso auth login)
-turso db create licitapro
-turso db show licitapro --url        # -> TURSO_DATABASE_URL
-turso db tokens create licitapro     # -> TURSO_AUTH_TOKEN
+DATABASE_URL='postgresql://postgres:<clave>@liciapp-db-u6837.vm.elestio.app:25433/postgres?sslmode=disable' \
+  node scripts/make-admin.mjs correo@ejemplo.cl
 ```
-(El esquema se crea solo al primer arranque de la app.)
 
-### 2. Desplegar en Vercel
-1. https://vercel.com → login con GitHub.
-2. **Add New → Project** → importa `gflepeq/licita-pro`.
-3. En **Environment Variables** agrega: `AUTH_SECRET`, `MERCADO_PUBLICO_TICKET`,
-   `TURSO_DATABASE_URL`, `TURSO_AUTH_TOKEN`.
-4. **Deploy**. Vercel te da una URL permanente `*.vercel.app` (puedes añadir dominio propio).
+## Docker local
 
-> Las páginas del dashboard tienen `maxDuration = 60` para que el enriquecimiento
-> inicial de la API (~15-18s) no expire. El resultado se cachea ~30 min.
-
----
-
-## Opción B — Servidor persistente con disco (Railway / Render / Fly / VPS)
-
-No necesita Turso: usa el SQLite local sobre un volumen montado en `DATA_DIR`.
-
-- **Railway/Render:** conecta el repo de GitHub, define `AUTH_SECRET`,
-  `MERCADO_PUBLICO_TICKET`, `DATA_DIR=/data` y monta un volumen en `/data`.
-- **Docker (Fly/VPS):** hay un `Dockerfile` (salida standalone, volumen `/data`).
-  ```bash
-  docker build -t licitapro .
-  docker run -d -p 80:3000 -v licitapro_data:/data \
-    -e AUTH_SECRET=... -e MERCADO_PUBLICO_TICKET=... -e DATA_DIR=/data licitapro
-  ```
+```bash
+docker build -t liciapp .
+docker run -p 3000:3000 -e AUTH_SECRET=... -e MERCADO_PUBLICO_TICKET=... -e DATABASE_URL=... liciapp
+```

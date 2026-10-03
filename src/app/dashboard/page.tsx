@@ -9,7 +9,7 @@ import { getLicitaciones } from "@/lib/mercadopublico";
 import { listSavedCodes } from "@/lib/db";
 import { diasRestantes, stats } from "@/lib/data";
 
-// El enriquecimiento de la API puede tardar; ampliamos el límite en Vercel.
+// El enriquecimiento de la API puede tardar; ampliamos el límite de la ruta.
 export const maxDuration = 60;
 
 export default async function DashboardHome() {

@@ -414,7 +414,7 @@ async function fetchAdjudicaciones(rut: string): Promise<AdjudicacionesResult> {
   return { items, total, montoTotal, enriched, source: "live", fetchedAt };
 }
 
-// Caché por RUT (Supabase + memoria) para evitar recargar en cada visita.
+// Caché por RUT (Postgres + memoria) para evitar recargar en cada visita.
 export async function getAdjudicacionesByRut(rutRaw: string): Promise<AdjudicacionesResult> {
   const fetchedAt = new Date().toISOString();
   const rut = normRut(rutRaw);
@@ -489,7 +489,7 @@ async function getRawOpportunities(): Promise<Licitacion[]> {
     return g.__mpCache.items;
   if (g.__mpInflight) return g.__mpInflight;
 
-  // 2. Caché persistente en Supabase (sobrevive a cold starts → evita el 504).
+  // 2. Caché persistente en Postgres (sobrevive a reinicios → evita el 504).
   try {
     const { cacheGet } = await import("@/lib/db");
     const raw = await cacheGet(CACHE_KEY);

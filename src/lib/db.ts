@@ -1,8 +1,8 @@
 import "server-only";
 import postgres from "postgres";
 
-// Conexión a Postgres (Supabase). Define DATABASE_URL con la connection string
-// del "pooler" de Supabase (puerto 6543, modo transaction) para serverless.
+// Conexión a Postgres (pipeline `liciapp-db` en Elestio). DATABASE_URL apunta a
+// la red interna del servidor: postgresql://postgres:<clave>@172.17.0.1:5433/postgres?sslmode=disable
 type Sql = ReturnType<typeof postgres>;
 
 const g = globalThis as unknown as {
@@ -13,10 +13,10 @@ const g = globalThis as unknown as {
 function getClient(): Sql {
   if (!g.__pg) {
     const url = process.env.DATABASE_URL;
-    if (!url) throw new Error("Falta DATABASE_URL (connection string de Supabase/Postgres).");
+    if (!url) throw new Error("Falta DATABASE_URL (connection string de Postgres).");
     g.__pg = postgres(url, {
-      prepare: false, // requerido por el pooler (pgBouncer) de Supabase
-      // Postgres propio en la red interna (Elestio) no usa SSL: ?sslmode=disable
+      prepare: false,
+      // Postgres en la red interna (Elestio) no usa SSL: ?sslmode=disable
       ssl: /[?&]sslmode=disable\b/.test(url) ? false : "require",
       max: 5,
       idle_timeout: 20,
@@ -678,14 +678,4 @@ export async function cacheSet(clave: string, valor: string) {
      ON CONFLICT(clave) DO UPDATE SET valor = excluded.valor`,
     [clave, valor]
   );
-}
-
-// TEMPORAL: conteo de filas por tabla para verificar la migración (sin datos personales).
-export async function tableCounts(): Promise<Record<string, number>> {
-  const out: Record<string, number> = {};
-  for (const t of ["users", "plans", "app_config", "settings", "payments", "saved"]) {
-    const r = await run(`SELECT COUNT(*) AS c FROM ${t}`);
-    out[t] = n(r.rows[0]?.c);
-  }
-  return out;
 }
