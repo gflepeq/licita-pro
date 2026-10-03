@@ -24,7 +24,7 @@ export async function AnnouncementBanner({ className = "" }: { className?: strin
         </div>
       )}
       {anuncio && (
-        <div className="flex items-start gap-2 rounded-xl border border-brand-200 bg-brand-50 px-4 py-2.5 text-sm text-brand-800 dark:border-brand-900 dark:bg-brand-950/40 dark:text-brand-200">
+        <div className="flex items-start gap-2 rounded-xl border border-brand-200 bg-brand-50 px-4 py-2.5 text-sm text-brand-800 dark:border-brand-900 dark:bg-brand-950/40 dark:text-brand-300">
           <Megaphone size={16} className="mt-0.5 shrink-0" />
           <span>{anuncio}</span>
         </div>

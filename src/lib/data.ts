@@ -1,7 +1,6 @@
-// Datos de ejemplo para el dashboard de LiciApp.
-// Simulan licitaciones de Mercado Público (ChileCompra).
+// Tipos, formateadores y datos de ejemplo (modo demo, sin ticket de API).
 
-export type EstadoLicitacion = "Publicada" | "Cerrada" | "Adjudicada" | "Desierta";
+export type EstadoLicitacion = "Publicada" | "Cerrada" | "Adjudicada" | "Desierta" | "Revocada" | "Suspendida";
 export type TipoOportunidad = "Licitación" | "Compra Ágil";
 
 export interface Licitacion {
@@ -11,16 +10,21 @@ export interface Licitacion {
   organismo: string;
   region: string;
   tipo: TipoOportunidad;
-  monto: number; // CLP estimado
+  monto: number; // monto estimado (en `moneda`, CLP por defecto)
+  moneda?: string; // CLP | CLF (UF) | USD | UTM
   estado: EstadoLicitacion;
-  publicada: string; // ISO date
-  cierre: string; // ISO date
+  publicada: string; // ISO date (YYYY-MM-DD)
+  cierre: string; // ISO date (YYYY-MM-DD)
+  cierreHora?: string; // HH:MM (hora de Chile)
   score: number; // 0-100 relevancia según rubros del usuario
-  categoria: string;
+  categoria: string; // tipo/modalidad legible (ej. "Licitación Pública 100–1.000 UTM")
   guardada: boolean;
   descripcion?: string; // detalle de la licitación/compra ágil
   rubrosMatch?: string[]; // rubros del usuario con los que coincide
-  garantia?: string; // tipo de garantía (pendiente: API de Compra Ágil/beta)
+  enRegion?: boolean; // la región coincide con las regiones del usuario
+  garantia?: string;
+  enriquecida?: boolean; // true si ya se obtuvo el detalle desde la API
+  url?: string; // ficha oficial en Mercado Público
 }
 
 export const fmtCLP = (n: number) =>
@@ -30,17 +34,55 @@ export const fmtCLP = (n: number) =>
     maximumFractionDigits: 0,
   }).format(n);
 
-export const fmtFecha = (iso: string) =>
-  new Date(iso + "T00:00:00").toLocaleDateString("es-CL", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  });
+// Formato compacto: $2.233 M · $23,9 M · $950 mil
+export const fmtCLPCorto = (n: number) => {
+  if (n >= 1_000_000) return `$${(n / 1_000_000).toLocaleString("es-CL", { maximumFractionDigits: n >= 100_000_000 ? 0 : 1 })} M`;
+  if (n >= 1_000) return `$${Math.round(n / 1_000).toLocaleString("es-CL")} mil`;
+  return fmtCLP(n);
+};
 
+// Monto con su moneda original (las licitaciones pueden venir en UF/USD/UTM).
+export const fmtMonto = (monto: number, moneda = "CLP") => {
+  if (!monto || monto <= 0) return "No publicado";
+  const m = moneda.toUpperCase();
+  if (m === "CLP" || !m) return fmtCLP(monto);
+  const n = monto.toLocaleString("es-CL", { maximumFractionDigits: 2 });
+  if (m === "CLF" || m === "UF") return `UF ${n}`;
+  if (m === "USD") return `US$ ${n}`;
+  if (m === "EUR") return `€ ${n}`;
+  return `${m} ${n}`;
+};
+
+export const fmtFecha = (iso: string) => {
+  if (!iso) return "—";
+  const d = new Date(iso.slice(0, 10) + "T12:00:00");
+  if (isNaN(d.getTime())) return "—";
+  return d.toLocaleDateString("es-CL", { day: "2-digit", month: "short", year: "numeric" });
+};
+
+// Fecha de hoy en Chile (YYYY-MM-DD), independiente de la zona del servidor.
+export const hoyChile = () =>
+  new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Santiago",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
+
+// Días que faltan para una fecha ISO (0 = hoy, negativo = ya pasó).
 export const diasRestantes = (iso: string) => {
-  const hoy = new Date("2026-06-02T00:00:00");
-  const fin = new Date(iso + "T00:00:00");
+  const hoy = new Date(hoyChile() + "T00:00:00Z");
+  const fin = new Date(iso.slice(0, 10) + "T00:00:00Z");
   return Math.round((fin.getTime() - hoy.getTime()) / 86400000);
+};
+
+export const textoCierre = (iso: string, hora?: string) => {
+  if (!iso) return "";
+  const d = diasRestantes(iso);
+  if (d < 0) return `Cerró ${fmtFecha(iso)}`;
+  if (d === 0) return `Cierra hoy${hora ? ` ${hora}` : ""}`;
+  if (d === 1) return `Cierra mañana${hora ? ` ${hora}` : ""}`;
+  return `Cierra en ${d} días`;
 };
 
 export const licitaciones: Licitacion[] = [
@@ -250,44 +292,3 @@ export const adjudicaciones: Adjudicacion[] = [
     ganada: true,
   },
 ];
-
-// ----- KPIs / serie temporal del dashboard -----
-export const stats = {
-  oportunidadesNuevas: 47,
-  oportunidadesNuevasDelta: 12,
-  relevantes: 18,
-  relevantesDelta: 4,
-  guardadas: licitaciones.filter((l) => l.guardada).length,
-  cierranPronto: licitaciones.filter(
-    (l) => l.estado === "Publicada" && diasRestantes(l.cierre) <= 5
-  ).length,
-  tasaExito: 31, // %
-  montoAdjudicado: adjudicaciones
-    .filter((a) => a.ganada)
-    .reduce((s, a) => s + a.monto, 0),
-};
-
-export const serieDeteccion = [
-  { mes: "Dic", detectadas: 210, relevantes: 38 },
-  { mes: "Ene", detectadas: 245, relevantes: 44 },
-  { mes: "Feb", detectadas: 198, relevantes: 41 },
-  { mes: "Mar", detectadas: 276, relevantes: 52 },
-  { mes: "Abr", detectadas: 312, relevantes: 61 },
-  { mes: "May", detectadas: 298, relevantes: 67 },
-];
-
-export const distribucionCategoria = [
-  { categoria: "Tecnología", valor: 28 },
-  { categoria: "Servicios", valor: 23 },
-  { categoria: "Salud", valor: 17 },
-  { categoria: "Construcción", valor: 14 },
-  { categoria: "Otros", valor: 18 },
-];
-
-export const usuario = {
-  nombre: "Camila Rojas",
-  empresa: "Innova Suministros SpA",
-  email: "camila@innovasuministros.cl",
-  plan: "Plan Gana",
-  iniciales: "CR",
-};

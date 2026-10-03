@@ -157,3 +157,12 @@ export async function saveConfigAction(
   revalidatePath("/admin/configuracion");
   return { ok: true };
 }
+
+// ---------- Mercado Público ----------
+export async function sincronizarMPAction(): Promise<{ ok: boolean; total: number; enriquecidas: number }> {
+  await requireAdmin();
+  const { refreshPool } = await import("@/lib/mercadopublico");
+  const r = await refreshPool(45_000);
+  revalidatePath("/admin");
+  return r;
+}

@@ -85,7 +85,7 @@ export function AlertsForm({
           return (
             <div
               key={ch.t}
-              className={`flex items-center justify-between gap-4 rounded-2xl border border-line bg-card p-5 ${
+              className={`flex items-center justify-between gap-4 card p-5 ${
                 bloqueado ? "opacity-70" : ""
               }`}
             >
@@ -113,7 +113,7 @@ export function AlertsForm({
         })}
       </div>
 
-      <div className="mt-5 rounded-2xl border border-line bg-card p-5">
+      <div className="mt-5 card p-5">
         <p className="font-medium text-ink">Umbral mínimo de relevancia</p>
         <p className="text-sm text-muted">
           Solo te avisaremos de oportunidades con un score igual o superior a{" "}

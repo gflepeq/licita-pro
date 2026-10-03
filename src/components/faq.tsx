@@ -34,7 +34,7 @@ export function Faq() {
   const [open, setOpen] = useState<number | null>(0);
 
   return (
-    <div className="mx-auto max-w-3xl divide-y divide-line rounded-2xl border border-line bg-card">
+    <div className="mx-auto max-w-3xl divide-y divide-line card">
       {faqs.map((item, i) => {
         const isOpen = open === i;
         return (

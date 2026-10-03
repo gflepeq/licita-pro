@@ -13,7 +13,7 @@ export function Logo({
   const tail = name.length > 3 ? name.slice(-3) : "";
   return (
     <Link href="/" className={`flex items-center gap-2 ${className}`}>
-      <span className="grid h-9 w-9 place-items-center rounded-xl bg-brand-600 text-white shadow-sm shadow-brand-600/30">
+      <span className="grid h-9 w-9 place-items-center rounded-xl bg-brand-gradient text-white shadow-glow">
         <svg
           width="20"
           height="20"
@@ -30,7 +30,7 @@ export function Logo({
         </svg>
       </span>
       <span
-        className={`text-lg font-bold tracking-tight ${
+        className={`font-display text-lg font-bold tracking-tight ${
           dark ? "text-white" : "text-ink"
         }`}
       >

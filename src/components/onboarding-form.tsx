@@ -39,7 +39,7 @@ export function OnboardingForm({ empresaInicial }: { empresaInicial: string }) {
             name="empresa"
             defaultValue={empresaInicial}
             placeholder="Innova Suministros SpA"
-            className="mt-1.5 w-full rounded-lg border border-line bg-surface px-3 py-2.5 text-sm text-ink placeholder:text-muted focus:border-brand-400 focus:bg-card focus:outline-none focus:ring-2 focus:ring-brand-100"
+            className="mt-1.5 w-full rounded-xl border border-line bg-surface px-3.5 py-2.5 text-sm text-ink placeholder:text-muted focus:border-brand-400 focus:bg-card focus:outline-none focus:ring-4 focus:ring-brand-100"
           />
         </label>
         <label className="block">
@@ -47,7 +47,7 @@ export function OnboardingForm({ empresaInicial }: { empresaInicial: string }) {
           <input
             name="rut"
             placeholder="76.543.210-9"
-            className="mt-1.5 w-full rounded-lg border border-line bg-surface px-3 py-2.5 text-sm text-ink placeholder:text-muted focus:border-brand-400 focus:bg-card focus:outline-none focus:ring-2 focus:ring-brand-100"
+            className="mt-1.5 w-full rounded-xl border border-line bg-surface px-3.5 py-2.5 text-sm text-ink placeholder:text-muted focus:border-brand-400 focus:bg-card focus:outline-none focus:ring-4 focus:ring-brand-100"
           />
         </label>
       </div>

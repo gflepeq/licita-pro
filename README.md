@@ -1,36 +1,27 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# LiciApp
 
-## Getting Started
+Detecta y gana licitaciones del Estado de Chile con IA. LiciApp se conecta a la
+API oficial de **Mercado Público (ChileCompra)**, prioriza las licitaciones y
+Compras Ágiles según el perfil de cada empresa y analiza las bases con **Claude**.
 
-First, run the development server:
+## Funcionalidades
+
+- **Oportunidades en vivo:** todas las licitaciones activas y compras ágiles, con
+  *match* 0-100 según rubros, palabras clave y regiones; búsqueda por palabra o
+  código, filtros (rubros, regiones, mecanismo, cierre, presupuesto) y detalle
+  completo (cronograma, ítems, responsable, ficha oficial, agendar cierre `.ics`).
+- **Resumen:** KPIs reales, cierres de los próximos 14 días, distribución por rubro y región.
+- **Análisis de bases con IA:** sube el PDF y/o indica el código; obtén viabilidad,
+  requisitos, plazos, criterios de evaluación, garantías, riesgos y un chat sobre las bases.
+- **Adjudicaciones:** quién gana en tus rubros, por cuánto, competencia y tus órdenes de compra.
+- **Guardadas, alertas, planes (Flow.cl) y panel Super Admin.**
+
+## Desarrollo
 
 ```bash
+cp .env.example .env.local
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Ver [DEPLOY.md](./DEPLOY.md) para variables de entorno y despliegue.

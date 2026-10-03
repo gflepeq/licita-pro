@@ -14,8 +14,8 @@ export default async function OportunidadesPage() {
   return (
     <div>
       <PageHeader
-        title="Oportunidades guardadas"
-        subtitle="Las licitaciones que marcaste para hacer seguimiento."
+        title="Guardadas"
+        subtitle={`${guardadas.length} oportunidad${guardadas.length === 1 ? "" : "es"} en seguimiento.`}
       />
       <OportunidadesClient items={guardadas} />
     </div>

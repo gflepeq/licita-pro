@@ -1,57 +1,54 @@
-# Deploy de Licitapro
+# Deploy de LiciApp
 
-La base de datos usa **libSQL** (`@libsql/client`):
-- **Local:** archivo SQLite en `./data` (o `DATA_DIR`). No requiere configurar nada.
-- **Producción:** **Turso** (libSQL gestionado, SQLite-compatible) vía
-  `TURSO_DATABASE_URL` + `TURSO_AUTH_TOKEN`.
-
-Esto permite desplegar en **Vercel** (serverless) de forma **gratuita y permanente**.
+Stack: **Next.js 16** en **Vercel** + **Postgres (Supabase)** + API de **Mercado Público** + **Claude** (análisis de bases).
 
 ## Variables de entorno
 
-| Variable | Dónde | Descripción |
+| Variable | Requerida | Descripción |
 |---|---|---|
-| `AUTH_SECRET` | siempre | Secreto de sesiones. `node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"` |
-| `MERCADO_PUBLICO_TICKET` | siempre | Ticket de la API de ChileCompra |
-| `TURSO_DATABASE_URL` | producción | URL `libsql://...` de la base en Turso |
-| `TURSO_AUTH_TOKEN` | producción | Token de acceso a la base Turso |
+| `AUTH_SECRET` | sí | Secreto de sesiones. `node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"` |
+| `DATABASE_URL` | sí | Connection string del **pooler** de Supabase (modo Transaction, puerto 6543). Las tablas se crean solas. |
+| `MERCADO_PUBLICO_TICKET` | sí | Ticket de la API de ChileCompra (https://api.mercadopublico.cl). Sin él, la app muestra datos de demostración. |
+| `COMPRA_AGIL_API_TICKET` | no | Ticket de la API v2 de Compra Ágil (por defecto, el mismo de arriba). |
+| `CRON_SECRET` | recomendado | Protege `/api/cron/mercadopublico`. |
+| `ANTHROPIC_API_KEY` | recomendado | Activa el análisis real de bases con IA. Sin ella funciona en modo demostración. |
+| `FLOW_API_KEY`, `FLOW_SECRET_KEY`, `FLOW_API_URL`, `APP_URL` | pagos | Integración con Flow.cl. |
+| `ADMIN_EMAILS` | no | Emails con acceso a `/admin`, separados por coma. |
 
----
+## Cómo se conecta con Mercado Público
 
-## Opción A — Vercel + Turso (recomendada: gratis y permanente)
+- **Pool de oportunidades:** se descargan *todas* las licitaciones activas
+  (`licitaciones.json?estado=activas`) y las compras ágiles recientes (API v2).
+  El resultado se guarda en Postgres y se sirve al instante; cada 20 minutos se
+  refresca en segundo plano (*stale-while-revalidate*), sin bloquear al usuario.
+- **Detalles:** el detalle de cada licitación (organismo, región, monto, fechas,
+  ítems) se pide una sola vez y se guarda en la tabla `mp_detalle`. Cada
+  actualización completa los que faltan, priorizando los relevantes. La API
+  rechaza peticiones simultáneas, por eso todas pasan por una cola serial con
+  reintentos.
+- **Cron:** `vercel.json` programa una sincronización diaria. Para mantener los
+  detalles al día durante la jornada, agrega un cron externo (ej. cron-job.org)
+  cada 30–60 min a `GET https://TU-DOMINIO/api/cron/mercadopublico` con el header
+  `Authorization: Bearer <CRON_SECRET>`. El panel `/admin` muestra el estado del
+  conector y permite sincronizar a mano.
+- **Adjudicaciones:** licitaciones adjudicadas de los últimos días que calzan con
+  el perfil, con proveedor ganador y monto. Con el RUT de la empresa se consultan
+  sus órdenes de compra (`Empresas/BuscarProveedor` + `ordenesdecompra.json`).
 
-### 1. Crear la base en Turso
+## Pasos (Vercel + Supabase)
+
+1. Crea el proyecto en https://supabase.com y copia la connection string del pooler.
+2. En Vercel: **Add New → Project** → importa el repositorio.
+3. Agrega las variables de entorno de la tabla.
+4. **Deploy**. La primera visita al dashboard llena la caché (≈10 s); después es instantáneo.
+
+## Desarrollo local
+
 ```bash
-# instala el CLI (https://docs.turso.tech)
-curl -sSfL https://get.tur.so/install.sh | bash
-turso auth signup            # crea cuenta (o turso auth login)
-turso db create licitapro
-turso db show licitapro --url        # -> TURSO_DATABASE_URL
-turso db tokens create licitapro     # -> TURSO_AUTH_TOKEN
+cp .env.example .env.local   # completa las variables
+npm install
+npm run dev
 ```
-(El esquema se crea solo al primer arranque de la app.)
 
-### 2. Desplegar en Vercel
-1. https://vercel.com → login con GitHub.
-2. **Add New → Project** → importa `gflepeq/licita-pro`.
-3. En **Environment Variables** agrega: `AUTH_SECRET`, `MERCADO_PUBLICO_TICKET`,
-   `TURSO_DATABASE_URL`, `TURSO_AUTH_TOKEN`.
-4. **Deploy**. Vercel te da una URL permanente `*.vercel.app` (puedes añadir dominio propio).
-
-> Las páginas del dashboard tienen `maxDuration = 60` para que el enriquecimiento
-> inicial de la API (~15-18s) no expire. El resultado se cachea ~30 min.
-
----
-
-## Opción B — Servidor persistente con disco (Railway / Render / Fly / VPS)
-
-No necesita Turso: usa el SQLite local sobre un volumen montado en `DATA_DIR`.
-
-- **Railway/Render:** conecta el repo de GitHub, define `AUTH_SECRET`,
-  `MERCADO_PUBLICO_TICKET`, `DATA_DIR=/data` y monta un volumen en `/data`.
-- **Docker (Fly/VPS):** hay un `Dockerfile` (salida standalone, volumen `/data`).
-  ```bash
-  docker build -t licitapro .
-  docker run -d -p 80:3000 -v licitapro_data:/data \
-    -e AUTH_SECRET=... -e MERCADO_PUBLICO_TICKET=... -e DATA_DIR=/data licitapro
-  ```
+Para probar sin ticket real puedes apuntar `MERCADO_PUBLICO_API_BASE` y
+`COMPRA_AGIL_API_BASE` a un mock local.

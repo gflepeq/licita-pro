@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Inter, Plus_Jakarta_Sans } from "next/font/google";
 import { cookies } from "next/headers";
 import "./globals.css";
 import { accentVars } from "@/lib/accents";
@@ -8,6 +8,13 @@ import { SITE } from "@/lib/site";
 const inter = Inter({
   variable: "--font-inter",
   subsets: ["latin"],
+  display: "swap",
+});
+
+const display = Plus_Jakarta_Sans({
+  variable: "--font-jakarta",
+  subsets: ["latin"],
+  weight: ["600", "700", "800"],
   display: "swap",
 });
 
@@ -47,7 +54,7 @@ export default async function RootLayout({
   return (
     <html
       lang="es"
-      className={`${inter.variable} h-full ${theme}`}
+      className={`${inter.variable} ${display.variable} h-full ${theme}`}
       style={parseStyle(accentVars(accent)) as React.CSSProperties}
       suppressHydrationWarning
     >

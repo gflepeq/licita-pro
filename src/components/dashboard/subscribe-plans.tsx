@@ -44,7 +44,7 @@ export function SubscribePlans({
   );
 
   return (
-    <div className="rounded-2xl border border-line bg-card p-5">
+    <div className="card p-5">
       <h2 className="font-semibold text-ink">Cambiar de plan</h2>
       <p className="mt-1 text-sm text-muted">
         Suscríbete o cambia tu plan. El pago se procesa de forma segura con Flow.

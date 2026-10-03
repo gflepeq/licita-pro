@@ -42,11 +42,20 @@ export async function updateProfileAction(
   const rut = String(formData.get("rut") ?? "").trim();
   const rubros = formData.getAll("rubros").map(String);
   const regiones = formData.getAll("regiones").map(String);
+  // Palabras clave separadas por coma (máx. 20, sin duplicados).
+  const keywords = Array.from(
+    new Set(
+      String(formData.get("keywords") ?? "")
+        .split(",")
+        .map((k) => k.trim().toLowerCase())
+        .filter((k) => k.length >= 3)
+    )
+  ).slice(0, 20);
 
   if (!nombre || !empresa)
     return { error: "Nombre y empresa son obligatorios." };
 
-  await updateProfile(uid, { nombre, empresa, rut, rubros, regiones });
+  await updateProfile(uid, { nombre, empresa, rut, rubros, regiones, keywords });
   revalidatePath("/dashboard", "layout");
   return { ok: true };
 }

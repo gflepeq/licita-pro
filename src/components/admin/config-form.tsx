@@ -24,7 +24,7 @@ export function ConfigForm({ config }: { config: Record<string, string> }) {
 
   return (
     <form action={action} className="space-y-5">
-      <div className="rounded-2xl border border-line bg-card p-5">
+      <div className="card p-5">
         <h2 className="mb-4 font-semibold text-ink">General</h2>
         <div className="grid gap-4 sm:grid-cols-2">
           <Field
@@ -45,12 +45,12 @@ export function ConfigForm({ config }: { config: Record<string, string> }) {
             rows={2}
             defaultValue={config.anuncio || ""}
             placeholder="Mensaje que verán todos los usuarios (opcional)"
-            className="mt-1.5 w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-ink placeholder:text-muted focus:border-brand-400 focus:bg-card focus:outline-none focus:ring-2 focus:ring-brand-100"
+            className="mt-1.5 w-full rounded-xl border border-line bg-surface px-3.5 py-2.5 text-sm text-ink placeholder:text-muted focus:border-brand-400 focus:bg-card focus:outline-none focus:ring-4 focus:ring-brand-100"
           />
         </label>
       </div>
 
-      <div className="flex items-center justify-between rounded-2xl border border-line bg-card p-5">
+      <div className="flex items-center justify-between card p-5">
         <div>
           <p className="font-medium text-ink">Modo mantenimiento</p>
           <p className="text-sm text-muted">
@@ -95,7 +95,7 @@ function Field({
       <input
         name={name}
         defaultValue={defaultValue}
-        className="mt-1.5 w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-ink focus:border-brand-400 focus:bg-card focus:outline-none focus:ring-2 focus:ring-brand-100"
+        className="mt-1.5 w-full rounded-xl border border-line bg-surface px-3.5 py-2.5 text-sm text-ink focus:border-brand-400 focus:bg-card focus:outline-none focus:ring-4 focus:ring-brand-100"
       />
     </label>
   );

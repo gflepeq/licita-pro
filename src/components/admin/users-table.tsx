@@ -2,7 +2,7 @@
 
 import { useActionState, useState, useTransition } from "react";
 import { useFormStatus } from "react-dom";
-import { Loader2, Pencil, Plus, Shield, Trash2, UserPlus, X } from "lucide-react";
+import { Loader2, Pencil, Shield, Trash2, UserPlus, X } from "lucide-react";
 import {
   crearUsuarioAction,
   editarUsuarioAction,
@@ -32,7 +32,7 @@ function PlanSelect({ planes, def }: { planes: PlanOpt[]; def?: string }) {
     <select
       name="plan"
       defaultValue={def ?? planes[0]?.id}
-      className="w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-ink focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100"
+      className="w-full rounded-xl border border-line bg-surface px-3.5 py-2.5 text-sm text-ink focus:border-brand-400 focus:outline-none focus:ring-4 focus:ring-brand-100"
     >
       {planes.map((p) => (
         <option key={p.id} value={p.id}>
@@ -48,7 +48,7 @@ function RoleSelect({ def }: { def?: string }) {
     <select
       name="role"
       defaultValue={def ?? "user"}
-      className="w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-ink focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100"
+      className="w-full rounded-xl border border-line bg-surface px-3.5 py-2.5 text-sm text-ink focus:border-brand-400 focus:outline-none focus:ring-4 focus:ring-brand-100"
     >
       <option value="user">Usuario</option>
       <option value="admin">Admin</option>
@@ -57,7 +57,7 @@ function RoleSelect({ def }: { def?: string }) {
 }
 
 const inputCls =
-  "w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-ink placeholder:text-muted focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100";
+  "w-full rounded-xl border border-line bg-surface px-3.5 py-2.5 text-sm text-ink placeholder:text-muted focus:border-brand-400 focus:outline-none focus:ring-4 focus:ring-brand-100";
 
 export function UsersTable({
   users,
@@ -108,7 +108,7 @@ export function UsersTable({
       {creating && (
         <form
           action={createAction}
-          className="mb-5 rounded-2xl border border-line bg-card p-5"
+          className="mb-5 card p-5"
         >
           <h3 className="mb-3 font-semibold text-ink">Crear usuario</h3>
           <div className="grid gap-3 sm:grid-cols-2">
@@ -136,7 +136,7 @@ export function UsersTable({
       )}
 
       {/* Tabla */}
-      <div className="overflow-hidden rounded-2xl border border-line bg-card">
+      <div className="overflow-hidden card">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>

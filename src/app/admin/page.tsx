@@ -3,6 +3,9 @@ import { CheckCircle2, Bookmark, Users, Wallet } from "lucide-react";
 import { PageHeader, StatCard } from "@/components/dashboard/ui";
 import { adminStats, listUsers, seedPaymentsIfEmpty, getPlanes } from "@/lib/db";
 import { fmtCLP } from "@/lib/data";
+import { ConectorMP } from "@/components/admin/conector-mp";
+import { estadoConector, resumenPublico } from "@/lib/mercadopublico";
+import { iaDisponible } from "@/lib/ia";
 
 export default async function AdminHome() {
   await seedPaymentsIfEmpty();
@@ -11,6 +14,14 @@ export default async function AdminHome() {
   const PLANES = await getPlanes({ all: true });
 
   const colores = ["bg-slate-400", "bg-brand-500", "bg-accent-500", "bg-amber-500", "bg-violet-500"];
+  const est = estadoConector();
+  const res = await resumenPublico().catch(() => null);
+  const conector = {
+    ...est,
+    ia: iaDisponible(),
+    poolTs: est.poolTs ?? res?.ts ?? null,
+    total: est.total || (res ? res.licitaciones + res.agiles : 0),
+  };
   const totalPlan = stats.porPlan.reduce((s, p) => s + p.total, 0) || 1;
 
   return (
@@ -44,7 +55,7 @@ export default async function AdminHome() {
 
       <div className="mt-6 grid gap-4 lg:grid-cols-2">
         {/* Distribución por plan */}
-        <div className="rounded-2xl border border-line bg-card p-5">
+        <div className="card p-5">
           <h2 className="mb-4 font-semibold text-ink">Usuarios por plan</h2>
           <div className="space-y-3">
             {PLANES.map((p, i) => {
@@ -71,7 +82,7 @@ export default async function AdminHome() {
         </div>
 
         {/* Usuarios recientes */}
-        <div className="rounded-2xl border border-line bg-card">
+        <div className="card">
           <div className="flex items-center justify-between border-b border-line px-5 py-4">
             <h2 className="font-semibold text-ink">Usuarios recientes</h2>
             <Link
@@ -101,6 +112,8 @@ export default async function AdminHome() {
           </ul>
         </div>
       </div>
+
+      <ConectorMP estado={conector} />
     </div>
   );
 }

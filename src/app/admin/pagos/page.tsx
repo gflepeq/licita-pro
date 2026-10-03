@@ -36,7 +36,7 @@ export default async function AdminPagos() {
         <StatCard icon={CheckCircle2} label="Pagos exitosos" value={String(stats.pagados)} tone="accent" />
       </div>
 
-      <div className="overflow-hidden rounded-2xl border border-line bg-card">
+      <div className="overflow-hidden card">
         <div className="border-b border-line px-5 py-4">
           <h2 className="font-semibold text-ink">Historial de pagos</h2>
         </div>

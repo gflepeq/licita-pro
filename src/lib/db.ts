@@ -16,9 +16,11 @@ function getClient(): Sql {
     if (!url) throw new Error("Falta DATABASE_URL (connection string de Supabase/Postgres).");
     g.__pg = postgres(url, {
       prepare: false, // requerido por el pooler (pgBouncer) de Supabase
-      ssl: "require",
+      // Supabase exige SSL; en local (localhost / sslmode=disable) se omite.
+      ssl: /localhost|127\.0\.0\.1|sslmode=disable/.test(url) ? false : "require",
       max: 5,
       idle_timeout: 20,
+      onnotice: () => {}, // silencia los NOTICE de "IF NOT EXISTS"
     });
   }
   return g.__pg;
@@ -80,6 +82,14 @@ const SCHEMA: string[] = [
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     UNIQUE(user_id, codigo)
   )`,
+  // Caché persistente del detalle de cada licitación de Mercado Público.
+  // `resumen` es compacto (para listados); `data` es el detalle completo.
+  `CREATE TABLE IF NOT EXISTS mp_detalle (
+    codigo TEXT PRIMARY KEY,
+    resumen TEXT NOT NULL,
+    data TEXT NOT NULL,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  )`,
 ];
 
 // Crea las tablas (idempotente) una sola vez por proceso.
@@ -90,6 +100,10 @@ function ready(): Promise<Sql> {
       for (const stmt of SCHEMA) await c.unsafe(stmt);
       await c.unsafe(
         "ALTER TABLE users ADD COLUMN IF NOT EXISTS role TEXT NOT NULL DEFAULT 'user'"
+      );
+      // Palabras clave propias del usuario (mejoran el match con IA).
+      await c.unsafe(
+        "ALTER TABLE settings ADD COLUMN IF NOT EXISTS keywords TEXT NOT NULL DEFAULT '[]'"
       );
       // Rebrand: Licitapro → LiciApp en datos existentes (idempotente).
       await c.unsafe("UPDATE settings SET app_name = 'LiciApp' WHERE app_name = 'Licitapro'");
@@ -164,6 +178,7 @@ export interface UserProfile {
   iniciales: string;
   rubros: string[];
   regiones: string[];
+  keywords: string[];
   alertCorreo: boolean;
   alertWhatsapp: boolean;
   alertResumen: boolean;
@@ -253,6 +268,7 @@ export async function getProfile(userId: number): Promise<UserProfile | null> {
     iniciales: iniciales || "U",
     rubros: JSON.parse(s(sr.rubros) || "[]") as string[],
     regiones: JSON.parse(s(sr.regiones) || "[]") as string[],
+    keywords: JSON.parse(s(sr.keywords) || "[]") as string[],
     alertCorreo: n(sr.alert_correo) === 1,
     alertWhatsapp: n(sr.alert_whatsapp) === 1,
     alertResumen: n(sr.alert_resumen) === 1,
@@ -281,7 +297,14 @@ export async function completeOnboarding(
 
 export async function updateProfile(
   userId: number,
-  data: { nombre: string; empresa: string; rut: string; rubros: string[]; regiones: string[] }
+  data: {
+    nombre: string;
+    empresa: string;
+    rut: string;
+    rubros: string[];
+    regiones: string[];
+    keywords: string[];
+  }
 ) {
   await run("UPDATE users SET nombre = ?, empresa = ?, rut = ? WHERE id = ?", [
     data.nombre,
@@ -289,9 +312,10 @@ export async function updateProfile(
     data.rut,
     userId,
   ]);
-  await run("UPDATE settings SET rubros = ?, regiones = ? WHERE user_id = ?", [
+  await run("UPDATE settings SET rubros = ?, regiones = ?, keywords = ? WHERE user_id = ?", [
     JSON.stringify(data.rubros),
     JSON.stringify(data.regiones),
+    JSON.stringify(data.keywords),
     userId,
   ]);
 }
@@ -677,4 +701,41 @@ export async function cacheSet(clave: string, valor: string) {
      ON CONFLICT(clave) DO UPDATE SET valor = excluded.valor`,
     [clave, valor]
   );
+}
+
+// ---------- Caché de detalles de Mercado Público ----------
+export async function detalleResumenes(codigos: string[]): Promise<Map<string, string>> {
+  const out = new Map<string, string>();
+  if (!codigos.length) return out;
+  const r = await run(
+    "SELECT codigo, resumen FROM mp_detalle WHERE codigo IN (SELECT jsonb_array_elements_text(?::jsonb))",
+    [JSON.stringify(codigos)]
+  );
+  r.rows.forEach((row) => out.set(s((row as Row).codigo), s((row as Row).resumen)));
+  return out;
+}
+
+export async function detalleGet(
+  codigo: string,
+  maxAgeHours = 24
+): Promise<string | null> {
+  const r = await run(
+    "SELECT data FROM mp_detalle WHERE codigo = ? AND updated_at > now() - make_interval(hours => ?)",
+    [codigo, maxAgeHours]
+  );
+  const o = r.rows[0] as Row | undefined;
+  return o ? s(o.data) : null;
+}
+
+export async function detalleSet(codigo: string, resumen: string, data: string) {
+  await run(
+    `INSERT INTO mp_detalle (codigo, resumen, data, updated_at) VALUES (?, ?, ?, now())
+     ON CONFLICT(codigo) DO UPDATE SET resumen = excluded.resumen, data = excluded.data, updated_at = now()`,
+    [codigo, resumen, data]
+  );
+}
+
+// Limpia detalles antiguos (licitaciones ya cerradas hace tiempo).
+export async function detallePurge(days = 60) {
+  await run("DELETE FROM mp_detalle WHERE updated_at < now() - make_interval(days => ?)", [days]);
 }
