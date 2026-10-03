@@ -1,5 +1,6 @@
 "use client";
 
+import { toPlain } from "@/lib/form-input";
 import Link from "next/link";
 import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
@@ -28,7 +29,7 @@ function SubmitButton({ label }: { label: string }) {
 export function AuthForm({ mode }: { mode: "login" | "register" }) {
   const action = mode === "login" ? loginAction : registerAction;
   const [state, formAction] = useActionState<AuthState, FormData>(
-    action,
+    (s: AuthState, fd: FormData) => action(s, toPlain(fd)),
     undefined
   );
 
@@ -75,7 +76,7 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
         <span className="h-px flex-1 bg-line" />o<span className="h-px flex-1 bg-line" />
       </div>
 
-      <form action={demoLoginAction}>
+      <form action={() => demoLoginAction()}>
         <button
           type="submit"
           className="w-full rounded-xl border border-line bg-card px-4 py-3 text-sm font-semibold text-ink transition-colors hover:bg-surface"

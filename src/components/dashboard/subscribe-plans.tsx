@@ -1,5 +1,6 @@
 "use client";
 
+import { toPlain } from "@/lib/form-input";
 import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
 import { AlertCircle, CheckCircle2, CreditCard, Loader2 } from "lucide-react";
@@ -39,7 +40,7 @@ export function SubscribePlans({
   pagoResultado?: "ok" | "error";
 }) {
   const [state, formAction] = useActionState<PagoState, FormData>(
-    iniciarPagoAction,
+    (s: PagoState, fd: FormData) => iniciarPagoAction(s, toPlain(fd)),
     undefined
   );
 

@@ -1,5 +1,6 @@
 "use server";
 
+import { asFormData, type FormInput } from "@/lib/form-input";
 import { redirect } from "next/navigation";
 import bcrypt from "bcryptjs";
 import { createUser, getUserByEmail, getUserById } from "@/lib/db";
@@ -15,8 +16,9 @@ const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export async function registerAction(
   _prev: AuthState,
-  formData: FormData
+  input: FormInput
 ): Promise<AuthState> {
+  const formData = asFormData(input);
   const nombre = String(formData.get("nombre") ?? "").trim();
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
   const password = String(formData.get("password") ?? "");
@@ -37,8 +39,9 @@ export async function registerAction(
 
 export async function loginAction(
   _prev: AuthState,
-  formData: FormData
+  input: FormInput
 ): Promise<AuthState> {
+  const formData = asFormData(input);
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
   const password = String(formData.get("password") ?? "");
 

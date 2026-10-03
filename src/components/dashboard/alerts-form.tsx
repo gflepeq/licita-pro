@@ -1,5 +1,6 @@
 "use client";
 
+import { toPlain } from "@/lib/form-input";
 import { useActionState, useState } from "react";
 import { useFormStatus } from "react-dom";
 import { CheckCircle2, Loader2, Lock, Mail, MessageCircle, Smartphone } from "lucide-react";
@@ -63,7 +64,7 @@ export function AlertsForm({
   capacidades: string[];
 }) {
   const [state, action] = useActionState<FormState, FormData>(
-    updateAlertsAction,
+    (s: FormState, fd: FormData) => updateAlertsAction(s, toPlain(fd)),
     undefined
   );
   const [c, setC] = useState(correo);

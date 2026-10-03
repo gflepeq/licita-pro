@@ -1,5 +1,6 @@
 "use client";
 
+import { toPlain } from "@/lib/form-input";
 import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
 import { CheckCircle2, Loader2 } from "lucide-react";
@@ -20,7 +21,7 @@ function Save() {
 }
 
 export function ConfigForm({ config }: { config: Record<string, string> }) {
-  const [state, action] = useActionState<ConfigState, FormData>(saveConfigAction, undefined);
+  const [state, action] = useActionState<ConfigState, FormData>((s: ConfigState, fd: FormData) => saveConfigAction(s, toPlain(fd)), undefined);
 
   return (
     <form action={action} className="space-y-5">

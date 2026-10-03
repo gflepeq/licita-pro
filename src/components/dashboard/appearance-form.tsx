@@ -1,5 +1,6 @@
 "use client";
 
+import { toPlain } from "@/lib/form-input";
 import { useActionState, useState } from "react";
 import { useFormStatus } from "react-dom";
 import { CheckCircle2, Loader2, Moon, Sun } from "lucide-react";
@@ -30,7 +31,7 @@ export function AppearanceForm({
   theme: "light" | "dark";
 }) {
   const [state, action] = useActionState<FormState, FormData>(
-    updateAppearanceAction,
+    (s: FormState, fd: FormData) => updateAppearanceAction(s, toPlain(fd)),
     undefined
   );
   const [accent, setAccent] = useState(accentInit);

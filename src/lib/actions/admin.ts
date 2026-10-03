@@ -1,5 +1,6 @@
 "use server";
 
+import { asFormData, type FormInput } from "@/lib/form-input";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import bcrypt from "bcryptjs";
@@ -52,8 +53,9 @@ const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export async function crearUsuarioAction(
   _prev: AdminFormState,
-  formData: FormData
+  input: FormInput
 ): Promise<AdminFormState> {
+  const formData = asFormData(input);
   await requireAdmin();
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
   const nombre = String(formData.get("nombre") ?? "").trim();
@@ -75,8 +77,9 @@ export async function crearUsuarioAction(
 
 export async function editarUsuarioAction(
   _prev: AdminFormState,
-  formData: FormData
+  input: FormInput
 ): Promise<AdminFormState> {
+  const formData = asFormData(input);
   const admin = await requireAdmin();
   const userId = Number(formData.get("userId"));
   const nombre = String(formData.get("nombre") ?? "").trim();
@@ -107,8 +110,9 @@ const slug = (s: string) =>
 
 export async function guardarPlanAction(
   _prev: AdminFormState,
-  formData: FormData
+  input: FormInput
 ): Promise<AdminFormState> {
+  const formData = asFormData(input);
   await requireAdmin();
   const editId = String(formData.get("editId") ?? "").trim();
   const nombre = String(formData.get("nombre") ?? "").trim();
@@ -145,8 +149,9 @@ export type ConfigState = { ok?: boolean } | undefined;
 
 export async function saveConfigAction(
   _prev: ConfigState,
-  formData: FormData
+  input: FormInput
 ): Promise<ConfigState> {
+  const formData = asFormData(input);
   await requireAdmin();
   await setConfig({
     nombre_plataforma: String(formData.get("nombre_plataforma") ?? "").trim(),

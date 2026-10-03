@@ -1,5 +1,6 @@
 "use client";
 
+import { toPlain } from "@/lib/form-input";
 import { useActionState, useState } from "react";
 import { useFormStatus } from "react-dom";
 import { AlertCircle, ArrowRight, Loader2 } from "lucide-react";
@@ -24,7 +25,7 @@ function SubmitButton() {
 
 export function OnboardingForm({ empresaInicial }: { empresaInicial: string }) {
   const [state, formAction] = useActionState<FormState, FormData>(
-    onboardingAction,
+    (s: FormState, fd: FormData) => onboardingAction(s, toPlain(fd)),
     undefined
   );
   const [rubros, setRubros] = useState<string[]>([]);

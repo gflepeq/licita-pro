@@ -1,5 +1,6 @@
 "use client";
 
+import { toPlain } from "@/lib/form-input";
 import { useActionState, useState, useTransition } from "react";
 import { useFormStatus } from "react-dom";
 import { Loader2, Pencil, Plus, Shield, Trash2, UserPlus, X } from "lucide-react";
@@ -73,11 +74,11 @@ export function UsersTable({
   const [, startTransition] = useTransition();
 
   const [createState, createAction] = useActionState<AdminFormState, FormData>(
-    crearUsuarioAction,
+    (s: AdminFormState, fd: FormData) => crearUsuarioAction(s, toPlain(fd)),
     undefined
   );
   const [editState, editAction] = useActionState<AdminFormState, FormData>(
-    editarUsuarioAction,
+    (s: AdminFormState, fd: FormData) => editarUsuarioAction(s, toPlain(fd)),
     undefined
   );
 

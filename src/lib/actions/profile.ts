@@ -1,5 +1,6 @@
 "use server";
 
+import { asFormData, type FormInput } from "@/lib/form-input";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import {
@@ -14,8 +15,9 @@ export type FormState = { error?: string; ok?: boolean } | undefined;
 
 export async function onboardingAction(
   _prev: FormState,
-  formData: FormData
+  input: FormInput
 ): Promise<FormState> {
+  const formData = asFormData(input);
   const uid = await requireUserId();
   const empresa = String(formData.get("empresa") ?? "").trim();
   const rut = String(formData.get("rut") ?? "").trim();
@@ -34,8 +36,9 @@ export async function onboardingAction(
 
 export async function updateProfileAction(
   _prev: FormState,
-  formData: FormData
+  input: FormInput
 ): Promise<FormState> {
+  const formData = asFormData(input);
   const uid = await requireUserId();
   const nombre = String(formData.get("nombre") ?? "").trim();
   const empresa = String(formData.get("empresa") ?? "").trim();
@@ -53,8 +56,9 @@ export async function updateProfileAction(
 
 export async function updateAlertsAction(
   _prev: FormState,
-  formData: FormData
+  input: FormInput
 ): Promise<FormState> {
+  const formData = asFormData(input);
   const uid = await requireUserId();
   await updateAlerts(uid, {
     alertCorreo: formData.get("alertCorreo") === "on",
@@ -67,8 +71,9 @@ export async function updateAlertsAction(
 
 export async function updateAppearanceAction(
   _prev: FormState,
-  formData: FormData
+  input: FormInput
 ): Promise<FormState> {
+  const formData = asFormData(input);
   const uid = await requireUserId();
   const theme = formData.get("theme") === "dark" ? "dark" : "light";
   const accent = String(formData.get("accent") ?? "blue");

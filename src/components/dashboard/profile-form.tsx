@@ -1,5 +1,6 @@
 "use client";
 
+import { toPlain } from "@/lib/form-input";
 import { useActionState, useState } from "react";
 import { useFormStatus } from "react-dom";
 import { CheckCircle2, Loader2 } from "lucide-react";
@@ -37,7 +38,7 @@ export function ProfileForm({
   regiones: string[];
 }) {
   const [state, action] = useActionState<FormState, FormData>(
-    updateProfileAction,
+    (s: FormState, fd: FormData) => updateProfileAction(s, toPlain(fd)),
     undefined
   );
   const [rubros, setRubros] = useState(rubrosInit);

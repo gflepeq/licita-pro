@@ -1,5 +1,6 @@
 "use server";
 
+import { asFormData, type FormInput } from "@/lib/form-input";
 import { redirect } from "next/navigation";
 import { currentUser } from "@/lib/current-user";
 import { createPaymentRow, setPaymentEstado, getPlanById } from "@/lib/db";
@@ -10,8 +11,9 @@ export type PagoState = { error?: string } | undefined;
 
 export async function iniciarPagoAction(
   _prev: PagoState,
-  formData: FormData
+  input: FormInput
 ): Promise<PagoState> {
+  const formData = asFormData(input);
   const user = await currentUser();
   if (!user) redirect("/login");
 

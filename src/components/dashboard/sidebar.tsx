@@ -98,7 +98,7 @@ export function Sidebar({
           <p className="truncate text-sm font-semibold text-ink">{user.nombre}</p>
           <p className="truncate text-xs text-muted">{user.empresa}</p>
         </div>
-        <form action={logoutAction}>
+        <form action={() => logoutAction()}>
           <button
             type="submit"
             className="grid h-8 w-8 place-items-center rounded-lg text-muted hover:bg-surface hover:text-red-600"

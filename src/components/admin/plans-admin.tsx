@@ -1,5 +1,6 @@
 "use client";
 
+import { toPlain } from "@/lib/form-input";
 import { useActionState, useMemo, useState, useTransition } from "react";
 import { useFormStatus } from "react-dom";
 import { CheckCircle2, Loader2, Pencil, Plus, Star, Trash2, X } from "lucide-react";
@@ -42,7 +43,7 @@ export function PlansAdmin({
   const [creating, setCreating] = useState(false);
   const [, startTransition] = useTransition();
   const [state, action] = useActionState<AdminFormState, FormData>(
-    guardarPlanAction,
+    (s: AdminFormState, fd: FormData) => guardarPlanAction(s, toPlain(fd)),
     undefined
   );
 
