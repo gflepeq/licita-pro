@@ -679,3 +679,13 @@ export async function cacheSet(clave: string, valor: string) {
     [clave, valor]
   );
 }
+
+// TEMPORAL: conteo de filas por tabla para verificar la migración (sin datos personales).
+export async function tableCounts(): Promise<Record<string, number>> {
+  const out: Record<string, number> = {};
+  for (const t of ["users", "plans", "app_config", "settings", "payments", "saved"]) {
+    const r = await run(`SELECT COUNT(*) AS c FROM ${t}`);
+    out[t] = n(r.rows[0]?.c);
+  }
+  return out;
+}
