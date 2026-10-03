@@ -2,16 +2,30 @@
 // Las tablas destino deben existir: la app las crea sola al arrancar con el
 // nuevo DATABASE_URL. Vacía las tablas destino antes de copiar.
 // Uso:
+//   node scripts/migrate-db.mjs        (pide las dos contraseñas)
+// o con las URLs completas:
 //   SOURCE_DATABASE_URL=postgres://... TARGET_DATABASE_URL=postgres://... \
 //     node scripts/migrate-db.mjs
 import postgres from "postgres";
+import { createInterface } from "node:readline/promises";
 
-const src = process.env.SOURCE_DATABASE_URL;
-const dst = process.env.TARGET_DATABASE_URL;
-if (!src || !dst) {
-  console.error("Faltan SOURCE_DATABASE_URL y/o TARGET_DATABASE_URL.");
-  process.exit(1);
-}
+const ask = async (q) => {
+  const rl = createInterface({ input: process.stdin, output: process.stdout });
+  const a = (await rl.question(q)).trim();
+  rl.close();
+  return encodeURIComponent(a);
+};
+
+const src =
+  process.env.SOURCE_DATABASE_URL ||
+  `postgresql://postgres.ieaxatdddfnpoptrkqay:${await ask(
+    "Contraseña de la base de Supabase: "
+  )}@aws-1-sa-east-1.pooler.supabase.com:6543/postgres`;
+const dst =
+  process.env.TARGET_DATABASE_URL ||
+  `postgresql://postgres:${await ask(
+    "Contraseña de liciapp-db en Elestio (SOFTWARE_PASSWORD): "
+  )}@liciapp-db-u6837.vm.elestio.app:25433/postgres?sslmode=disable`;
 
 const connect = (url) =>
   postgres(url, {
