@@ -16,7 +16,8 @@ function getClient(): Sql {
     if (!url) throw new Error("Falta DATABASE_URL (connection string de Supabase/Postgres).");
     g.__pg = postgres(url, {
       prepare: false, // requerido por el pooler (pgBouncer) de Supabase
-      ssl: "require",
+      // Postgres propio en la red interna (Elestio) no usa SSL: ?sslmode=disable
+      ssl: /[?&]sslmode=disable\b/.test(url) ? false : "require",
       max: 5,
       idle_timeout: 20,
     });
