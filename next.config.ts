@@ -1,8 +1,9 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // Nota: para deploy en Docker/servidor persistente, agregar output: "standalone".
-  // En Vercel NO debe usarse (Vercel arma su propio output serverless).
+  // Docker / Elest.io: BUILD_STANDALONE=1 genera un servidor autocontenido
+  // (.next/standalone). En Vercel se deja sin definir (usa su propio output).
+  output: process.env.BUILD_STANDALONE === "1" ? "standalone" : undefined,
   serverExternalPackages: ["postgres"],
 };
 

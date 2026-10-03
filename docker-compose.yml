@@ -1,0 +1,32 @@
+# LiciApp en Elest.io (pipeline CI/CD tipo "Docker compose").
+# Las variables se cargan desde el .env que Elest.io genera con las
+# "Environment variables" del pipeline.
+services:
+  app:
+    build: .
+    restart: always
+    env_file: .env
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+    # Elest.io publica el contenedor a través de su reverse proxy (Nginx):
+    # el puerto se expone solo en la IP interna de Docker del servidor.
+    ports:
+      - "172.17.0.1:${APP_PORT:-3000}:3000"
+
+  # Sincroniza Mercado Público cada 30 min (enriquece detalles pendientes).
+  cron:
+    image: curlimages/curl:8.10.1
+    restart: always
+    depends_on:
+      - app
+    env_file: .env
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        sleep 90
+        while true; do
+          curl -fsS -m 120 -H "Authorization: Bearer $$CRON_SECRET" http://app:3000/api/cron/mercadopublico || true
+          echo
+          sleep 1800
+        done

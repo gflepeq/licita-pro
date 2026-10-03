@@ -1,8 +1,8 @@
 node_modules
 .next
 .git
+graphify-out
 data
 *.log
 .env*
 !.env.example
-README.md
