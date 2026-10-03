@@ -5,6 +5,8 @@ import { AppearanceForm } from "@/components/dashboard/appearance-form";
 import { SubscribePlans } from "@/components/dashboard/subscribe-plans";
 import { currentUser } from "@/lib/current-user";
 import { getPlanes } from "@/lib/db";
+import { CAPACIDADES } from "@/lib/capacidades";
+import { CheckCircle2, Lock } from "lucide-react";
 
 export default async function ConfiguracionPage({
   searchParams,
@@ -39,6 +41,7 @@ export default async function ConfiguracionPage({
             email={user.email}
             rubros={user.rubros}
             regiones={user.regiones}
+            keywords={user.keywords}
           />
           <AppearanceForm
             appName={user.appName}
@@ -47,26 +50,38 @@ export default async function ConfiguracionPage({
           />
         </div>
 
-        <div className="h-fit rounded-2xl border border-line bg-card p-5">
-          <h2 className="font-semibold text-ink">Tu plan</h2>
-          <div className="mt-3 rounded-xl bg-brand-50 p-4 dark:bg-brand-950/40">
-            <p className="text-lg font-bold text-brand-700 dark:text-brand-300">
-              {user.plan}
-            </p>
-            <p className="mt-1 text-sm text-muted">
-              Acceso a detección y análisis con IA.
-            </p>
+        <div className="h-fit space-y-5 lg:sticky lg:top-24">
+          <div className="card overflow-hidden">
+            <div className="relative bg-brand-gradient p-5 text-white">
+              <div className="pointer-events-none absolute -right-8 -top-8 h-28 w-28 rounded-full bg-white/10 blur-2xl" />
+              <p className="text-xs font-semibold text-white/75">Tu plan actual</p>
+              <p className="mt-0.5 font-display text-2xl font-bold">{user.plan}</p>
+            </div>
+            <ul className="space-y-2.5 p-5 text-sm">
+              {CAPACIDADES.map((c) => {
+                const ok = user.capacidades.includes(c.key);
+                return (
+                  <li key={c.key} className={`flex items-center gap-2.5 ${ok ? "text-ink" : "text-muted line-through decoration-line"}`}>
+                    {ok ? (
+                      <CheckCircle2 size={16} className="shrink-0 text-emerald-500" />
+                    ) : (
+                      <Lock size={14} className="shrink-0 text-muted" />
+                    )}
+                    {c.label}
+                  </li>
+                );
+              })}
+            </ul>
+            <div className="border-t border-line p-4">
+              <a href="#planes" className="btn-secondary w-full">
+                Cambiar de plan
+              </a>
+            </div>
           </div>
-          <ul className="mt-4 space-y-2 text-sm text-muted">
-            <li>· Detección ilimitada con IA</li>
-            <li>· Análisis de bases ilimitado</li>
-            <li>· Alertas por WhatsApp</li>
-            <li>· Soporte prioritario</li>
-          </ul>
         </div>
       </div>
 
-      <div className="mt-5">
+      <div id="planes" className="mt-5 scroll-mt-24">
         <SubscribePlans planes={planes} currentPlan={user.plan} pagoResultado={pagoResultado} />
       </div>
     </div>

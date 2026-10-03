@@ -28,6 +28,7 @@ export default async function DashboardLayout({
     accent: user.accent,
     theme: user.theme,
     isAdmin: user.isAdmin,
+    capacidades: user.capacidades,
   };
 
   return (

@@ -19,7 +19,10 @@ export default async function LicitacionesPage({
   const puedeBuscar = caps.includes("busqueda");
   const query = puedeBuscar ? (q ?? "").trim() : "";
 
-  const { items, source } = await getLicitaciones(user.rubros, query);
+  const { items, source, totales, enriquecidas, fetchedAt, note } = await getLicitaciones(
+    { rubros: user.rubros, regiones: user.regiones, keywords: user.keywords },
+    query
+  );
   const savedCodes = await listSavedCodes(user.id);
 
   // Enforcement por plan: solo los tipos de oportunidad que incluye el plan.
@@ -27,12 +30,18 @@ export default async function LicitacionesPage({
   if (caps.includes("licitaciones")) tiposPermitidos.push("Licitación");
   if (caps.includes("compra_agil")) tiposPermitidos.push("Compra Ágil");
   const data = items.filter((l) => tiposPermitidos.includes(l.tipo));
+  const total = tiposPermitidos.reduce((s, t) => s + (totales[t as keyof typeof totales] ?? 0), 0);
 
   return (
     <LicitacionesClient
       data={data}
       savedCodes={savedCodes}
       source={source}
+      total={total}
+      enriquecidas={enriquecidas}
+      fetchedAt={fetchedAt}
+      note={note}
+      misRegiones={user.regiones}
       query={query}
       puedeRegion={caps.includes("filtro_region")}
       puedeBuscar={puedeBuscar}

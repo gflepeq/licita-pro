@@ -1,111 +1,77 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useTransition } from "react";
-import { Bookmark, FileSearch } from "lucide-react";
-import { EstadoBadge, ScoreBadge } from "@/components/dashboard/ui";
+import { useMemo, useState, useTransition } from "react";
+import { Bookmark } from "lucide-react";
+import { EmptyState } from "@/components/dashboard/ui";
 import { LicitacionModal } from "@/components/dashboard/licitacion-modal";
+import { OportunidadCard } from "@/components/dashboard/licitaciones-client";
+import { useToast } from "@/components/toast";
 import { toggleSavedAction } from "@/lib/actions/saved";
-import { diasRestantes, fmtCLP, fmtFecha, type Licitacion } from "@/lib/data";
+import { diasRestantes, type Licitacion } from "@/lib/data";
 
 export function OportunidadesClient({ items }: { items: Licitacion[] }) {
   const [list, setList] = useState<Licitacion[]>(items);
   const [selected, setSelected] = useState<Licitacion | null>(null);
   const [, startTransition] = useTransition();
+  const toast = useToast();
 
   // En esta página todo está guardado; alternar = quitar de guardados.
   const unsave = (l: Licitacion) => {
     setList((prev) => prev.filter((x) => x.codigo !== l.codigo));
     setSelected(null);
-    startTransition(() => {
-      toggleSavedAction(l);
+    startTransition(async () => {
+      await toggleSavedAction(l);
+      toast("Quitada de guardadas");
     });
   };
 
+  const { abiertas, cerradas } = useMemo(() => {
+    const abierta = (l: Licitacion) => l.estado === "Publicada" && (!l.cierre || diasRestantes(l.cierre) >= 0);
+    return {
+      abiertas: list.filter(abierta).sort((a, b) => (a.cierre || "9999").localeCompare(b.cierre || "9999")),
+      cerradas: list.filter((l) => !abierta(l)),
+    };
+  }, [list]);
+
   if (list.length === 0) {
     return (
-      <div className="rounded-2xl border border-dashed border-line bg-card py-16 text-center">
-        <p className="text-sm text-muted">Aún no has guardado oportunidades.</p>
-        <Link
-          href="/dashboard/licitaciones"
-          className="mt-3 inline-block rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700"
-        >
-          Explorar licitaciones
+      <EmptyState
+        icon={Bookmark}
+        title="Aún no guardas oportunidades"
+        text="Marca con el ícono de guardar las licitaciones que quieras seguir y aparecerán aquí, ordenadas por fecha de cierre."
+      >
+        <Link href="/dashboard/licitaciones" className="btn-primary">
+          Explorar oportunidades
         </Link>
-      </div>
+      </EmptyState>
     );
   }
 
+  const grid = (ls: Licitacion[]) => (
+    <div className="grid gap-3 xl:grid-cols-2">
+      {ls.map((l) => (
+        <OportunidadCard key={l.codigo} l={l} saved onOpen={() => setSelected(l)} onToggle={() => unsave(l)} />
+      ))}
+    </div>
+  );
+
   return (
     <>
-      <div className="grid gap-4 md:grid-cols-2">
-        {list.map((l) => {
-          const dias = l.cierre ? diasRestantes(l.cierre) : null;
-          return (
-            <div
-              key={l.codigo}
-              onClick={() => setSelected(l)}
-              className="flex cursor-pointer flex-col rounded-2xl border border-line bg-card p-5 transition-shadow hover:shadow-md"
-            >
-              <div className="flex items-start justify-between gap-3">
-                <ScoreBadge score={l.score} />
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    unsave(l);
-                  }}
-                  aria-label="Quitar de guardados"
-                >
-                  <Bookmark size={18} className="fill-brand-600 text-brand-600" />
-                </button>
-              </div>
-              <p className="mt-3 font-semibold text-ink">{l.nombre}</p>
-              <p className="mt-1 text-sm text-muted">
-                {l.organismo} · {l.codigo}
-              </p>
+      {abiertas.length > 0 && (
+        <section>
+          <h2 className="eyebrow mb-3">Abiertas · por fecha de cierre ({abiertas.length})</h2>
+          {grid(abiertas)}
+        </section>
+      )}
+      {cerradas.length > 0 && (
+        <section className="mt-8">
+          <h2 className="eyebrow mb-3">Cerradas o finalizadas ({cerradas.length})</h2>
+          <div className="opacity-80">{grid(cerradas)}</div>
+        </section>
+      )}
 
-              <div className="mt-4 grid grid-cols-2 gap-3 rounded-xl bg-surface p-3 text-sm">
-                <div>
-                  <p className="text-xs text-muted">Monto estimado</p>
-                  <p className="font-semibold text-ink">
-                    {l.monto > 0 ? fmtCLP(l.monto) : "—"}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-xs text-muted">Cierre</p>
-                  <p className="font-semibold text-ink">
-                    {l.cierre ? fmtFecha(l.cierre) : "—"}
-                  </p>
-                </div>
-              </div>
-
-              <div className="mt-4 flex items-center justify-between">
-                <EstadoBadge estado={l.estado} />
-                {l.estado === "Publicada" && dias !== null && (
-                  <span
-                    className={`text-xs font-medium ${
-                      dias <= 3 ? "text-red-600" : "text-muted"
-                    }`}
-                  >
-                    {dias > 0 ? `Cierra en ${dias} días` : "Cierra hoy"}
-                  </span>
-                )}
-              </div>
-
-              <span className="mt-4 inline-flex items-center justify-center gap-2 rounded-lg border border-line py-2.5 text-sm font-semibold text-ink">
-                <FileSearch size={16} /> Ver detalle
-              </span>
-            </div>
-          );
-        })}
-      </div>
-
-      <LicitacionModal
-        licitacion={selected}
-        saved
-        onToggleSaved={unsave}
-        onClose={() => setSelected(null)}
-      />
+      <LicitacionModal licitacion={selected} saved onToggleSaved={unsave} onClose={() => setSelected(null)} />
     </>
   );
 }

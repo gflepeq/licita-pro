@@ -52,7 +52,7 @@ export function AppearanceForm({
   };
 
   return (
-    <form action={action} className="space-y-5 rounded-2xl border border-line bg-card p-5">
+    <form action={action} className="space-y-5 card p-5">
       <div>
         <h2 className="font-semibold text-ink">Apariencia y marca</h2>
         <p className="text-sm text-muted">
@@ -66,7 +66,7 @@ export function AppearanceForm({
           name="appName"
           value={appName}
           onChange={(e) => setAppName(e.target.value)}
-          className="mt-1.5 w-full max-w-xs rounded-lg border border-line bg-surface px-3 py-2 text-sm text-ink focus:border-brand-400 focus:bg-card focus:outline-none focus:ring-2 focus:ring-brand-100"
+          className="mt-1.5 w-full max-w-xs rounded-xl border border-line bg-surface px-3.5 py-2.5 text-sm text-ink focus:border-brand-400 focus:bg-card focus:outline-none focus:ring-4 focus:ring-brand-100"
         />
       </label>
 

@@ -22,6 +22,7 @@ import { getPlanes } from "@/lib/db";
 import { fmtCLP } from "@/lib/data";
 import { capacidadLabel } from "@/lib/capacidades";
 import { PLANES_SEED } from "@/lib/planes";
+import { resumenPublico } from "@/lib/mercadopublico";
 
 export default function Home() {
   return (
@@ -51,12 +52,12 @@ function Hero() {
       <div className="absolute inset-0 bg-hero-glow" />
       <div className="relative mx-auto max-w-6xl px-4 pb-20 pt-16 sm:px-6 sm:pt-24">
         <div className="mx-auto max-w-3xl text-center">
-          <span className="inline-flex items-center gap-2 rounded-full border border-brand-200 bg-brand-50 px-3 py-1 text-xs font-semibold text-brand-700">
+          <span className="inline-flex items-center gap-2 rounded-full border border-brand-200 bg-brand-50 px-3 py-1 text-xs font-semibold text-brand-700 dark:text-brand-300">
             <Sparkles size={14} /> Detección de licitaciones con inteligencia artificial
           </span>
-          <h1 className="mt-6 text-4xl font-extrabold tracking-tight text-ink sm:text-5xl md:text-6xl">
+          <h1 className="mt-6 text-4xl font-extrabold tracking-tight text-ink sm:text-5xl md:text-[3.6rem] md:leading-[1.05]">
             Gana más licitaciones del Estado,{" "}
-            <span className="text-brand-600">sin perder horas buscando</span>
+            <span className="text-gradient">sin perder horas buscando</span>
           </h1>
           <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-muted">
             LiciApp detecta automáticamente las licitaciones públicas y
@@ -66,13 +67,13 @@ function Hero() {
           <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
             <Link
               href="/registro"
-              className="inline-flex items-center gap-2 rounded-xl bg-brand-600 px-6 py-3.5 text-sm font-semibold text-white shadow-lg shadow-brand-600/30 transition-all hover:bg-brand-700"
+              className="btn-primary px-6 py-3.5"
             >
               Probar 7 días por $4.990 <ArrowRight size={18} />
             </Link>
             <a
               href="#como-funciona"
-              className="inline-flex items-center gap-2 rounded-xl border border-line bg-card px-6 py-3.5 text-sm font-semibold text-ink transition-colors hover:bg-surface"
+              className="btn-secondary px-6 py-3.5"
             >
               Ver cómo funciona
             </a>
@@ -84,7 +85,7 @@ function Hero() {
 
         {/* Mockup del panel */}
         <div className="mx-auto mt-14 max-w-4xl animate-float-up">
-          <div className="rounded-2xl border border-line bg-card p-2 shadow-2xl shadow-brand-900/10">
+          <div className="card p-2 shadow-2xl shadow-brand-900/10">
             <div className="rounded-xl bg-surface p-4 sm:p-6">
               <div className="mb-4 flex items-center justify-between">
                 <p className="text-sm font-semibold text-ink">
@@ -133,21 +134,36 @@ function ScoreRing({ score }: { score: number }) {
   );
 }
 
-/* ---------------- Logos ---------------- */
-function LogosBar() {
+/* ---------------- Datos en vivo ---------------- */
+async function LogosBar() {
+  let r: Awaited<ReturnType<typeof resumenPublico>> = null;
+  try {
+    r = await resumenPublico();
+  } catch {}
+  const stats = [
+    { v: r ? r.licitaciones.toLocaleString("es-CL") : "+3.000", l: "licitaciones vigentes hoy" },
+    { v: r ? r.agiles.toLocaleString("es-CL") : "+1.000", l: "compras ágiles recientes" },
+    { v: "16", l: "regiones de Chile" },
+    { v: "24/7", l: "monitoreo de Mercado Público" },
+  ];
   return (
     <section className="border-y border-line bg-surface">
-      <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
-        <p className="text-center text-xs font-semibold uppercase tracking-wider text-muted">
-          Empresas que ya venden al Estado con LiciApp
+      <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6">
+        <p className="eyebrow flex items-center justify-center gap-2 text-center">
+          <span className="relative flex h-2 w-2">
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60" />
+            <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+          </span>
+          Conectado a la API oficial de ChileCompra
         </p>
-        <div className="mt-6 flex flex-wrap items-center justify-center gap-x-10 gap-y-4 text-base font-bold text-slate-400">
-          <span>Innova Suministros</span>
-          <span>TecnoAndes</span>
-          <span>Clean&Green</span>
-          <span>MediQuote</span>
-          <span>Constructora Aysén</span>
-        </div>
+        <dl className="mt-6 grid grid-cols-2 gap-6 text-center md:grid-cols-4">
+          {stats.map((x) => (
+            <div key={x.l}>
+              <dt className="font-display text-3xl font-bold tracking-tight text-ink tabular-nums">{x.v}</dt>
+              <dd className="mt-1 text-sm text-muted">{x.l}</dd>
+            </div>
+          ))}
+        </dl>
       </div>
     </section>
   );
@@ -185,7 +201,7 @@ function Problema() {
           {dolores.map((d) => (
             <div
               key={d.t}
-              className="rounded-2xl border border-line bg-card p-6 shadow-sm"
+              className="card p-6 shadow-sm"
             >
               <div className="grid h-11 w-11 place-items-center rounded-xl bg-red-50 text-red-500">
                 <d.icon size={22} />
@@ -225,13 +241,13 @@ function Soluciones() {
     },
     {
       icon: Trophy,
-      t: "Seguimiento de adjudicaciones",
-      d: "Cada semana recibes un resumen con las adjudicaciones de las licitaciones y cotizaciones que seguiste.",
+      t: "Adjudicaciones y órdenes de compra",
+      d: "Revisa quién gana en tus rubros, por cuánto y con cuántos oferentes, y sigue las órdenes de compra que recibe tu empresa.",
     },
     {
       icon: LineChart,
-      t: "Borradores de cotización",
-      d: "Genera borradores de cotización para acelerar tus postulaciones (planes superiores).",
+      t: "Inteligencia de competencia",
+      d: "Conoce a los proveedores que más se adjudican en tu rubro y ajusta tu estrategia de precios.",
     },
   ];
   return (
@@ -251,7 +267,7 @@ function Soluciones() {
           {features.map((f) => (
             <div
               key={f.t}
-              className="group rounded-2xl border border-line bg-card p-6 transition-shadow hover:shadow-lg"
+              className="group card card-hover p-6"
             >
               <div className="grid h-11 w-11 place-items-center rounded-xl bg-brand-50 text-brand-600 transition-colors group-hover:bg-brand-600 group-hover:text-white">
                 <f.icon size={22} />
@@ -297,7 +313,7 @@ function ComoFunciona() {
         <div className="mt-12 grid gap-8 md:grid-cols-3">
           {pasos.map((p, i) => (
             <div key={p.t} className="relative text-center">
-              <div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-brand-600 text-white shadow-lg shadow-brand-600/30">
+              <div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-brand-gradient text-white shadow-glow">
                 <p.icon size={26} />
               </div>
               <span className="mt-4 inline-block text-xs font-bold uppercase tracking-wider text-brand-600">
@@ -335,8 +351,9 @@ function Testimonios() {
     },
   ];
   return (
-    <section className="bg-slate-900 py-20 sm:py-24">
-      <div className="mx-auto max-w-6xl px-4 sm:px-6">
+    <section className="relative overflow-hidden bg-slate-950 py-20 sm:py-24">
+      <div className="pointer-events-none absolute inset-0 bg-hero-glow opacity-40" />
+      <div className="relative mx-auto max-w-6xl px-4 sm:px-6">
         <div className="mx-auto max-w-2xl text-center">
           <p className="text-sm font-semibold text-brand-400">Clientes</p>
           <h2 className="mt-2 text-3xl font-bold tracking-tight text-white sm:text-4xl">
@@ -404,7 +421,7 @@ async function Precios() {
               key={p.nombre}
               className={`relative rounded-2xl border p-7 ${
                 p.destacado
-                  ? "border-brand-600 bg-card shadow-xl shadow-brand-600/10 lg:-mt-4 lg:mb-4"
+                  ? "border-brand-600 bg-card shadow-glow lg:-mt-4 lg:mb-4"
                   : "border-line bg-card shadow-sm"
               }`}
             >
@@ -424,7 +441,7 @@ async function Precios() {
                 href="/registro"
                 className={`mt-6 block rounded-xl px-4 py-3 text-center text-sm font-semibold transition-colors ${
                   p.destacado
-                    ? "bg-brand-600 text-white hover:bg-brand-700"
+                    ? "bg-brand-gradient text-white hover:opacity-95"
                     : "border border-line text-ink hover:bg-surface"
                 }`}
               >
@@ -473,13 +490,13 @@ function CtaFinal() {
   return (
     <section className="py-20 sm:py-24">
       <div className="mx-auto max-w-5xl px-4 sm:px-6">
-        <div className="relative overflow-hidden rounded-3xl bg-brand-600 px-6 py-14 text-center sm:px-12">
+        <div className="relative overflow-hidden rounded-3xl bg-brand-gradient px-6 py-16 text-center shadow-glow sm:px-12">
           <div className="absolute inset-0 bg-hero-glow opacity-60" />
           <div className="relative">
             <h2 className="mx-auto max-w-2xl text-3xl font-bold tracking-tight text-white sm:text-4xl">
               Empieza a detectar oportunidades hoy
             </h2>
-            <p className="mx-auto mt-4 max-w-xl text-lg text-brand-50">
+            <p className="mx-auto mt-4 max-w-xl text-lg text-white/80">
               Prueba LiciApp 7 días por $4.990 y descubre cuántas licitaciones
               estás dejando pasar.
             </p>

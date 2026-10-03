@@ -1,6 +1,11 @@
 "use server";
 
-import { getCompraAgilDetalle, type CompraAgilDetalle } from "@/lib/mercadopublico";
+import {
+  getCompraAgilDetalle,
+  getLicitacionDetalle,
+  type CompraAgilDetalle,
+  type LicitacionDetalle,
+} from "@/lib/mercadopublico";
 import { requireUserId } from "@/lib/actions/auth";
 
 export async function compraAgilDetalleAction(
@@ -8,4 +13,11 @@ export async function compraAgilDetalleAction(
 ): Promise<CompraAgilDetalle | null> {
   await requireUserId();
   return getCompraAgilDetalle(codigo);
+}
+
+export async function licitacionDetalleAction(
+  codigo: string
+): Promise<LicitacionDetalle | null> {
+  await requireUserId();
+  return getLicitacionDetalle(codigo);
 }

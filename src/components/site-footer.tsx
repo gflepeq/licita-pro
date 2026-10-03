@@ -5,7 +5,7 @@ import { SITE } from "@/lib/site";
 
 export function SiteFooter() {
   return (
-    <footer className="border-t border-line bg-slate-900 text-slate-300">
+    <footer className="border-t border-line bg-slate-950 text-slate-300">
       <div className="mx-auto max-w-6xl px-4 py-14 sm:px-6">
         <div className="grid gap-10 md:grid-cols-4">
           <div className="md:col-span-1">
@@ -25,9 +25,9 @@ export function SiteFooter() {
           <div>
             <h4 className="text-sm font-semibold text-white">Producto</h4>
             <ul className="mt-4 space-y-2.5 text-sm text-slate-400">
-              <li><a href="/#soluciones" className="hover:text-white">Detección con IA</a></li>
-              <li><a href="/#soluciones" className="hover:text-white">Análisis de bases</a></li>
-              <li><a href="/#precios" className="hover:text-white">Precios</a></li>
+              <li><Link href="/#soluciones" className="hover:text-white">Detección con IA</Link></li>
+              <li><Link href="/#soluciones" className="hover:text-white">Análisis de bases</Link></li>
+              <li><Link href="/#precios" className="hover:text-white">Precios</Link></li>
               <li><Link href="/dashboard" className="hover:text-white">Dashboard</Link></li>
             </ul>
           </div>
@@ -35,8 +35,8 @@ export function SiteFooter() {
           <div>
             <h4 className="text-sm font-semibold text-white">Empresa</h4>
             <ul className="mt-4 space-y-2.5 text-sm text-slate-400">
-              <li><a href="/#problema" className="hover:text-white">Sobre {SITE.name}</a></li>
-              <li><a href="/#faq" className="hover:text-white">Preguntas frecuentes</a></li>
+              <li><Link href="/#problema" className="hover:text-white">Sobre {SITE.name}</Link></li>
+              <li><Link href="/#faq" className="hover:text-white">Preguntas frecuentes</Link></li>
               <li>
                 <a href={`mailto:${SITE.email}`} className="hover:text-white">
                   Contacto

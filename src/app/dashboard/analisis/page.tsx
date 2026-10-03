@@ -3,8 +3,16 @@ import { PageHeader } from "@/components/dashboard/ui";
 import { PlanLock } from "@/components/dashboard/plan-lock";
 import { AnalisisClient } from "@/components/dashboard/analisis-client";
 import { currentUser } from "@/lib/current-user";
+import { iaDisponible } from "@/lib/ia";
 
-export default async function AnalisisPage() {
+export const maxDuration = 300;
+
+export default async function AnalisisPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ codigo?: string }>;
+}) {
+  const { codigo } = await searchParams;
   const user = await currentUser();
   if (!user) redirect("/login");
 
@@ -20,5 +28,5 @@ export default async function AnalisisPage() {
     );
   }
 
-  return <AnalisisClient />;
+  return <AnalisisClient codigoInicial={(codigo ?? "").slice(0, 40)} iaReal={iaDisponible()} />;
 }

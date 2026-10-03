@@ -9,4 +9,5 @@ export interface SafeUser {
   accent: string;
   theme: "light" | "dark";
   isAdmin: boolean;
+  capacidades: string[];
 }

@@ -25,13 +25,13 @@ export function AuthShell({
       </div>
 
       {/* Panel de marca */}
-      <div className="relative hidden overflow-hidden bg-brand-700 lg:block">
+      <div className="relative hidden overflow-hidden bg-brand-gradient lg:block">
         <div className="absolute inset-0 bg-hero-glow opacity-70" />
         <div className="relative flex h-full flex-col justify-center px-12 text-white">
           <h2 className="max-w-md text-3xl font-bold leading-tight">
             Detecta y gana licitaciones del Estado con IA
           </h2>
-          <p className="mt-4 max-w-md text-brand-100">
+          <p className="mt-4 max-w-md text-white/80">
             Únete a las PYMEs que dejaron de buscar a mano en Mercado Público.
           </p>
           <ul className="mt-8 space-y-3">
@@ -41,7 +41,7 @@ export function AuthShell({
               "Alertas por correo y WhatsApp",
               "Seguimiento de adjudicaciones",
             ].map((t) => (
-              <li key={t} className="flex items-center gap-3 text-brand-50">
+              <li key={t} className="flex items-center gap-3 text-white/90">
                 <CheckCircle2 size={20} className="shrink-0 text-accent-400" />
                 {t}
               </li>
