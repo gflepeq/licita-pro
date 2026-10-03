@@ -18,7 +18,7 @@ export function SiteHeader() {
   const [open, setOpen] = useState(false);
 
   return (
-    <header className="sticky top-0 z-50 border-b border-line/80 bg-card/80 backdrop-blur-md">
+    <header className="sticky top-0 z-50 border-b border-line bg-white/70 backdrop-blur-xl dark:bg-slate-950/70">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
         <Logo />
 
@@ -38,13 +38,13 @@ export function SiteHeader() {
           <ThemeToggle />
           <Link
             href="/login"
-            className="text-sm font-semibold text-ink transition-colors hover:text-brand-600"
+            className="text-sm font-medium text-slate-600 transition-colors hover:text-ink dark:text-slate-300"
           >
             Ingresar
           </Link>
           <Link
             href="/registro"
-            className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-sm shadow-brand-600/30 transition-all hover:bg-brand-700 hover:shadow-md"
+            className="rounded-lg btn-ink px-4 py-2 text-sm font-semibold transition-all hover:shadow-md"
           >
             Prueba 7 días
           </Link>
@@ -82,7 +82,7 @@ export function SiteHeader() {
             <Link
               href="/registro"
               onClick={() => setOpen(false)}
-              className="rounded-lg bg-brand-600 px-4 py-2.5 text-center text-sm font-semibold text-white"
+              className="rounded-lg btn-ink px-4 py-2.5 text-center text-sm font-semibold"
             >
               Prueba 7 días
             </Link>

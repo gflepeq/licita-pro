@@ -14,7 +14,7 @@ function Save({ label }: { label: string }) {
     <button
       type="submit"
       disabled={pending}
-      className="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-60"
+      className="inline-flex items-center gap-2 rounded-lg btn-ink px-5 py-2.5 text-sm font-semibold disabled:opacity-60"
     >
       {pending && <Loader2 size={15} className="animate-spin" />}
       {label}

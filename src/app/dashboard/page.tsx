@@ -58,7 +58,7 @@ export default async function DashboardHome() {
         actions={
           <Link
             href="/dashboard/licitaciones"
-            className="inline-flex items-center gap-1.5 rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm shadow-brand-600/30 hover:bg-brand-700"
+            className="inline-flex items-center gap-1.5 rounded-lg btn-ink px-4 py-2.5 text-sm font-semibold"
           >
             Explorar oportunidades <ArrowUpRight size={15} />
           </Link>

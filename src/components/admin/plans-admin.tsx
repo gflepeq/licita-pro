@@ -22,7 +22,7 @@ function SaveBtn() {
     <button
       type="submit"
       disabled={pending}
-      className="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-60"
+      className="inline-flex items-center gap-2 rounded-lg btn-ink px-4 py-2 text-sm font-semibold disabled:opacity-60"
     >
       {pending && <Loader2 size={15} className="animate-spin" />}
       Guardar plan
@@ -73,7 +73,7 @@ export function PlansAdmin({
             setEditing(null);
             setCreating(true);
           }}
-          className="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700"
+          className="inline-flex items-center gap-2 rounded-lg btn-ink px-4 py-2 text-sm font-semibold"
         >
           <Plus size={16} /> Nuevo plan
         </button>

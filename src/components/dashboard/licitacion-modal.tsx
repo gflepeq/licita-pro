@@ -261,7 +261,7 @@ export function LicitacionModal({
           </div>
           <Link
             href={`/dashboard/analisis?codigo=${encodeURIComponent(l.codigo)}`}
-            className="inline-flex items-center gap-2 rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-700"
+            className="inline-flex items-center gap-2 rounded-lg btn-ink px-4 py-2.5 text-sm font-semibold"
           >
             <FileSearch size={16} /> Analizar con IA
           </Link>

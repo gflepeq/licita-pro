@@ -59,7 +59,7 @@ export function AdminShell({
               onClick={() => setOpen(false)}
               className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
                 active
-                  ? "bg-ink text-white"
+                  ? "btn-ink"
                   : "text-slate-600 hover:bg-surface hover:text-ink dark:text-slate-300"
               }`}
             >

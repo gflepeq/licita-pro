@@ -49,34 +49,33 @@ export function Sidebar({
         key={l.href}
         href={l.href}
         onClick={onNavigate}
-        className={`group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors ${
+        className={`group relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
           active
-            ? "bg-white/10 text-white"
-            : "text-slate-400 hover:bg-white/5 hover:text-white"
+            ? "btn-ink shadow-sm"
+            : "text-slate-600 hover:bg-slate-900/[0.04] hover:text-ink dark:text-slate-300 dark:hover:bg-white/5"
         }`}
       >
-        {active && <span className="absolute -left-4 top-2 bottom-2 w-1 rounded-r-full bg-brand-500" />}
-        <l.icon size={18} className={active ? "text-brand-400" : ""} />
+        <l.icon size={18} />
         {l.label}
       </Link>
     );
   };
 
   return (
-    <div className="flex h-full flex-col gap-2 border-r border-white/5 bg-[#0b1120] px-4 py-5 text-slate-300">
+    <div className="flex h-full flex-col gap-2 border-r border-line bg-white/80 px-4 py-5 backdrop-blur-xl dark:bg-slate-950/80">
       <div className="px-2">
-        <Logo name={user.appName} dark />
+        <Logo name={user.appName} />
       </div>
 
       <nav className="mt-4 flex flex-1 flex-col gap-1">
         {links.map(item)}
-        <div className="my-3 border-t border-white/10" />
+        <div className="my-3 border-t border-line" />
         {bottom.map(item)}
         {user.isAdmin &&
           item({ href: "/admin", label: "Super Admin", icon: Shield })}
       </nav>
 
-      <div className="bg-brand-gradient rounded-2xl p-4 text-white shadow-lg shadow-brand-600/20">
+      <div className="bg-flow rounded-2xl p-4 text-white shadow-lg shadow-violet-500/20">
         <p className="text-[11px] font-semibold uppercase tracking-wider text-white/70">Tu plan</p>
         <p className="mt-0.5 text-sm font-bold">{user.plan}</p>
         <Link
@@ -87,18 +86,18 @@ export function Sidebar({
         </Link>
       </div>
 
-      <div className="flex items-center gap-3 rounded-xl bg-white/5 p-3">
-        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-brand-600 text-sm font-bold text-white">
+      <div className="flex items-center gap-3 rounded-xl border border-line p-3">
+        <span className="bg-flow grid h-9 w-9 shrink-0 place-items-center rounded-full text-sm font-bold text-white">
           {user.iniciales}
         </span>
         <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-semibold text-white">{user.nombre}</p>
-          <p className="truncate text-xs text-slate-400">{user.empresa}</p>
+          <p className="truncate text-sm font-semibold text-ink">{user.nombre}</p>
+          <p className="truncate text-xs text-muted">{user.empresa}</p>
         </div>
         <form action={() => logoutAction()}>
           <button
             type="submit"
-            className="grid h-8 w-8 place-items-center rounded-lg text-slate-400 hover:bg-white/10 hover:text-red-400"
+            className="grid h-8 w-8 place-items-center rounded-lg text-muted hover:bg-surface hover:text-red-600"
             aria-label="Cerrar sesión"
             title="Cerrar sesión"
           >

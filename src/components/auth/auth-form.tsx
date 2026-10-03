@@ -18,7 +18,7 @@ function SubmitButton({ label }: { label: string }) {
     <button
       type="submit"
       disabled={pending}
-      className="flex w-full items-center justify-center gap-2 rounded-xl bg-brand-600 px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-brand-700 disabled:opacity-60"
+      className="flex w-full items-center justify-center gap-2 rounded-lg btn-ink px-4 py-3 text-sm font-semibold transition-colors disabled:opacity-60"
     >
       {pending && <Loader2 size={16} className="animate-spin" />}
       {label}

@@ -29,7 +29,7 @@ export function OportunidadesClient({ items }: { items: Licitacion[] }) {
         estado y plazo actualizados.
         <Link
           href="/dashboard/licitaciones"
-          className="mt-4 block rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-700"
+          className="mt-4 block rounded-lg btn-ink px-4 py-2.5 text-sm font-semibold"
         >
           Explorar licitaciones
         </Link>

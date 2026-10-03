@@ -1,8 +1,8 @@
 // Paletas de acento seleccionables (ajustes de marca).
 export const ACCENTS: Record<string, { label: string; c600: string; c700: string }> = {
-  blue: { label: "Azul", c600: "#2563eb", c700: "#1d4ed8" },
+  blue: { label: "Azul", c600: "#2b60ec", c700: "#1f4fd1" },
   emerald: { label: "Esmeralda", c600: "#059669", c700: "#047857" },
-  violet: { label: "Violeta", c600: "#7c3aed", c700: "#6d28d9" },
+  violet: { label: "Violeta", c600: "#773cec", c700: "#6328d6" },
   rose: { label: "Rosa", c600: "#e11d48", c700: "#be123c" },
   amber: { label: "Ámbar", c600: "#d97706", c700: "#b45309" },
   cyan: { label: "Cian", c600: "#0891b2", c700: "#0e7490" },

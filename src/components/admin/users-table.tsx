@@ -20,7 +20,7 @@ function SaveBtn({ label }: { label: string }) {
     <button
       type="submit"
       disabled={pending}
-      className="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-60"
+      className="inline-flex items-center gap-2 rounded-lg btn-ink px-4 py-2 text-sm font-semibold disabled:opacity-60"
     >
       {pending && <Loader2 size={15} className="animate-spin" />}
       {label}
@@ -100,7 +100,7 @@ export function UsersTable({
       <div className="mb-4 flex justify-end">
         <button
           onClick={() => setCreating((v) => !v)}
-          className="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700"
+          className="inline-flex items-center gap-2 rounded-lg btn-ink px-4 py-2 text-sm font-semibold"
         >
           <UserPlus size={16} /> Nuevo usuario
         </button>

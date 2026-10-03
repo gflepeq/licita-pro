@@ -177,7 +177,7 @@ export function LicitacionesClient({
           )}
           <button
             type="submit"
-            className="inline-flex items-center gap-2 rounded-xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700"
+            className="inline-flex items-center gap-2 rounded-lg btn-ink px-4 py-2 text-sm font-semibold"
           >
             {pending ? <Loader2 size={15} className="animate-spin" /> : <Search size={15} />}
             Buscar

@@ -144,7 +144,7 @@ function EmptyState({
       {cta && (
         <Link
           href={cta.href}
-          className="mt-5 inline-block rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700"
+          className="mt-5 inline-block rounded-lg btn-ink px-4 py-2 text-sm font-semibold"
         >
           {cta.label}
         </Link>

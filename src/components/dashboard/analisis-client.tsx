@@ -117,7 +117,7 @@ export function AnalisisClient({ licitacion: l, disponible }: { licitacion: Lici
           <p className="mt-3 font-semibold text-ink">{error}</p>
           <button
             onClick={analizar}
-            className="mt-4 inline-flex items-center gap-2 rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white"
+            className="mt-4 inline-flex items-center gap-2 rounded-lg btn-ink px-4 py-2.5 text-sm font-semibold"
           >
             <RefreshCw size={15} /> Reintentar
           </button>

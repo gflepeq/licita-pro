@@ -8,12 +8,12 @@
   --color-foreground: var(--fg);
 
   /* Brand — configurable vía --brand-* (ver tema de acento) */
-  --color-brand-50: #eff6ff;
-  --color-brand-100: #dbeafe;
-  --color-brand-200: #bfdbfe;
-  --color-brand-300: #93c5fd;
-  --color-brand-400: #60a5fa;
-  --color-brand-500: #3b82f6;
+  --color-brand-50: #eef3ff;
+  --color-brand-100: #dce6fd;
+  --color-brand-200: #bccffb;
+  --color-brand-300: #8eaef7;
+  --color-brand-400: #5f88f2;
+  --color-brand-500: #3f6ff0;
   --color-brand-600: var(--brand-600);
   --color-brand-700: var(--brand-700);
   --color-brand-800: #1e40af;
@@ -39,19 +39,21 @@
 }
 
 :root {
-  --bg: #ffffff;
-  --fg: #0b1220;
-  --ink: #0b1220;
+  /* Paleta StayFlow: fondo slate claro, tinta slate-900 */
+  --bg: #f8fafc;
+  --fg: #1e293b;
+  --ink: #0f172a;
   --muted: #64748b;
-  --line: #e5e9f0;
-  --surface: #f4f6fa;
+  --line: rgba(226, 232, 240, 0.85);
+  --surface: #f8fafc;
   --card: #ffffff;
-  --shadow-card: 0 1px 2px rgba(15, 23, 42, 0.04), 0 2px 8px -2px rgba(15, 23, 42, 0.06);
-  --shadow-pop: 0 12px 32px -8px rgba(15, 23, 42, 0.18);
+  --shadow-card: 0 1px 2px rgba(16, 24, 40, 0.04), 0 12px 32px -12px rgba(16, 24, 40, 0.1);
+  --shadow-pop: 0 1px 2px rgba(16, 24, 40, 0.05), 0 20px 40px -14px rgba(16, 24, 40, 0.2);
+  --flow: linear-gradient(135deg, #2b60ec 0%, #773cec 34%, #b53da9 66%, #f96b23 100%);
 
-  /* Acento por defecto: azul */
-  --brand-600: #2563eb;
-  --brand-700: #1d4ed8;
+  /* Acento por defecto: azul StayFlow */
+  --brand-600: #2b60ec;
+  --brand-700: #1f4fd1;
 }
 
 .dark {
@@ -62,6 +64,7 @@
   --line: #1e293b;
   --surface: #020617;
   --card: #0b1324;
+  --flow: linear-gradient(135deg, #4a7bff 0%, #8f5cff 34%, #d055c4 66%, #ff8a4c 100%);
   --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.3);
   --shadow-pop: 0 16px 40px -12px rgba(0, 0, 0, 0.6);
 }
@@ -72,6 +75,12 @@
 
 html {
   scroll-behavior: smooth;
+}
+
+h1,
+h2,
+h3 {
+  letter-spacing: -0.025em;
 }
 
 body {
@@ -111,7 +120,7 @@ body {
 .card {
   background: var(--card);
   border: 1px solid var(--line);
-  border-radius: 1.25rem;
+  border-radius: 1rem;
   box-shadow: var(--shadow-card);
 }
 .card-hover {
@@ -125,8 +134,47 @@ body {
 .num {
   font-variant-numeric: tabular-nums;
 }
-.bg-brand-gradient {
-  background: linear-gradient(135deg, var(--brand-600), color-mix(in srgb, var(--brand-600) 55%, #7c3aed));
+/* Degradado de marca (familia StayFlow) */
+.bg-brand-gradient,
+.bg-flow {
+  background: var(--flow);
+}
+.text-flow {
+  background: var(--flow);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+/* Botón primario estilo StayFlow (slate-900) */
+.btn-ink {
+  background: #0f172a;
+  color: #fff;
+}
+.btn-ink:hover {
+  background: #1e293b;
+}
+.dark .btn-ink {
+  background: #f8fafc;
+  color: #0f172a;
+}
+.dark .btn-ink:hover {
+  background: #e2e8f0;
+}
+/* Eyebrow: etiqueta superior en mayúsculas espaciadas */
+.eyebrow {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+/* Fondo pastel del hero (StayFlow) */
+.bg-aurora {
+  background:
+    radial-gradient(40% 50% at 12% 0%, rgba(43, 96, 236, 0.16) 0%, transparent 70%),
+    radial-gradient(35% 45% at 45% 0%, rgba(119, 60, 236, 0.12) 0%, transparent 70%),
+    radial-gradient(35% 45% at 75% 5%, rgba(181, 61, 169, 0.12) 0%, transparent 70%),
+    radial-gradient(30% 40% at 95% 10%, rgba(249, 107, 35, 0.12) 0%, transparent 70%);
 }
 @keyframes shimmer {
   from { background-position: -400px 0; }

@@ -47,16 +47,14 @@ export default function Home() {
 /* ---------------- Hero ---------------- */
 function Hero() {
   return (
-    <section className="relative overflow-hidden bg-grid">
-      <div className="absolute inset-0 bg-hero-glow" />
+    <section className="relative overflow-hidden">
+      <div className="bg-aurora absolute inset-0" />
       <div className="relative mx-auto max-w-6xl px-4 pb-20 pt-16 sm:px-6 sm:pt-24">
         <div className="mx-auto max-w-3xl text-center">
-          <span className="inline-flex items-center gap-2 rounded-full border border-brand-200 bg-brand-50 px-3 py-1 text-xs font-semibold text-brand-700">
-            <Sparkles size={14} /> Detección de licitaciones con inteligencia artificial
-          </span>
-          <h1 className="mt-6 text-4xl font-extrabold tracking-tight text-ink sm:text-5xl md:text-6xl">
+          <p className="eyebrow">Licitaciones · Compras Ágiles · Análisis con IA</p>
+          <h1 className="mt-5 text-4xl font-semibold leading-[1.08] tracking-[-0.03em] text-ink sm:text-5xl md:text-[56px]">
             Gana más licitaciones del Estado,{" "}
-            <span className="text-brand-600">sin perder horas buscando</span>
+            <span className="text-flow">sin perder horas buscando</span>
           </h1>
           <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-muted">
             LiciApp detecta automáticamente las licitaciones públicas y
@@ -66,25 +64,25 @@ function Hero() {
           <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
             <Link
               href="/registro"
-              className="inline-flex items-center gap-2 rounded-xl bg-brand-600 px-6 py-3.5 text-sm font-semibold text-white shadow-lg shadow-brand-600/30 transition-all hover:bg-brand-700"
+              className="inline-flex items-center gap-2 rounded-lg btn-ink px-6 py-3.5 text-sm font-semibold transition-all"
             >
               Probar 7 días por $4.990 <ArrowRight size={18} />
             </Link>
             <a
               href="#como-funciona"
-              className="inline-flex items-center gap-2 rounded-xl border border-line bg-card px-6 py-3.5 text-sm font-semibold text-ink transition-colors hover:bg-surface"
+              className="inline-flex items-center gap-2 rounded-lg border border-line bg-white px-6 py-3.5 text-sm font-semibold text-slate-800 transition-colors hover:bg-slate-50 dark:bg-slate-900 dark:text-slate-100"
             >
               Ver cómo funciona
             </a>
           </div>
           <p className="mt-4 text-xs text-muted">
-            Sin permanencia · Cancela cuando quieras · Datos oficiales de ChileCompra
+            Hecho en Chile · Datos oficiales de ChileCompra · Sin permanencia
           </p>
         </div>
 
         {/* Mockup del panel */}
         <div className="mx-auto mt-14 max-w-4xl animate-float-up">
-          <div className="rounded-2xl border border-line bg-card p-2 shadow-2xl shadow-brand-900/10">
+          <div className="card p-2">
             <div className="rounded-xl bg-surface p-4 sm:p-6">
               <div className="mb-4 flex items-center justify-between">
                 <p className="text-sm font-semibold text-ink">
@@ -176,8 +174,8 @@ function Problema() {
     <section id="problema" className="py-20 sm:py-24">
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
         <div className="mx-auto max-w-2xl text-center">
-          <p className="text-sm font-semibold text-brand-600">El problema</p>
-          <h2 className="mt-2 text-3xl font-bold tracking-tight text-ink sm:text-4xl">
+          <p className="eyebrow">El problema</p>
+          <h2 className="mt-2 text-3xl font-semibold tracking-tight text-ink sm:text-4xl">
             Vender al Estado no debería ser un trabajo de tiempo completo
           </h2>
         </div>
@@ -238,8 +236,8 @@ function Soluciones() {
     <section id="soluciones" className="bg-surface py-20 sm:py-24">
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
         <div className="mx-auto max-w-2xl text-center">
-          <p className="text-sm font-semibold text-brand-600">Soluciones</p>
-          <h2 className="mt-2 text-3xl font-bold tracking-tight text-ink sm:text-4xl">
+          <p className="eyebrow">Soluciones</p>
+          <h2 className="mt-2 text-3xl font-semibold tracking-tight text-ink sm:text-4xl">
             Toda tu gestión de licitaciones en un solo lugar
           </h2>
           <p className="mt-4 text-lg text-muted">
@@ -289,8 +287,8 @@ function ComoFunciona() {
     <section id="como-funciona" className="py-20 sm:py-24">
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
         <div className="mx-auto max-w-2xl text-center">
-          <p className="text-sm font-semibold text-brand-600">Cómo funciona</p>
-          <h2 className="mt-2 text-3xl font-bold tracking-tight text-ink sm:text-4xl">
+          <p className="eyebrow">Cómo funciona</p>
+          <h2 className="mt-2 text-3xl font-semibold tracking-tight text-ink sm:text-4xl">
             Empieza a detectar oportunidades en 3 pasos
           </h2>
         </div>
@@ -335,11 +333,11 @@ function Testimonios() {
     },
   ];
   return (
-    <section className="bg-slate-900 py-20 sm:py-24">
+    <section className="py-20 sm:py-24">
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
         <div className="mx-auto max-w-2xl text-center">
-          <p className="text-sm font-semibold text-brand-400">Clientes</p>
-          <h2 className="mt-2 text-3xl font-bold tracking-tight text-white sm:text-4xl">
+          <p className="eyebrow">Clientes</p>
+          <h2 className="mt-2 text-3xl font-semibold tracking-tight text-ink sm:text-4xl">
             PYMEs que ya venden más al Estado
           </h2>
         </div>
@@ -347,19 +345,19 @@ function Testimonios() {
           {t.map((item) => (
             <figure
               key={item.n}
-              className="rounded-2xl border border-white/10 bg-white/5 p-6"
+              className="card p-6"
             >
               <div className="flex gap-0.5 text-amber-400">
                 {Array.from({ length: 5 }).map((_, i) => (
                   <Star key={i} size={16} fill="currentColor" />
                 ))}
               </div>
-              <blockquote className="mt-4 text-sm leading-relaxed text-slate-200">
+              <blockquote className="mt-4 text-sm leading-relaxed text-ink/80">
                 “{item.q}”
               </blockquote>
               <figcaption className="mt-5">
-                <p className="text-sm font-semibold text-white">{item.n}</p>
-                <p className="text-xs text-slate-400">{item.c}</p>
+                <p className="text-sm font-semibold text-ink">{item.n}</p>
+                <p className="text-xs text-muted">{item.c}</p>
               </figcaption>
             </figure>
           ))}
@@ -390,8 +388,8 @@ async function Precios() {
     <section id="precios" className="py-20 sm:py-24">
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
         <div className="mx-auto max-w-2xl text-center">
-          <p className="text-sm font-semibold text-brand-600">Precios</p>
-          <h2 className="mt-2 text-3xl font-bold tracking-tight text-ink sm:text-4xl">
+          <p className="eyebrow">Precios</p>
+          <h2 className="mt-2 text-3xl font-semibold tracking-tight text-ink sm:text-4xl">
             Planes para cada etapa de tu empresa
           </h2>
           <p className="mt-4 text-lg text-muted">
@@ -455,8 +453,8 @@ function FaqSection() {
     <section id="faq" className="bg-surface py-20 sm:py-24">
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
         <div className="mx-auto max-w-2xl text-center">
-          <p className="text-sm font-semibold text-brand-600">FAQ</p>
-          <h2 className="mt-2 text-3xl font-bold tracking-tight text-ink sm:text-4xl">
+          <p className="eyebrow">FAQ</p>
+          <h2 className="mt-2 text-3xl font-semibold tracking-tight text-ink sm:text-4xl">
             Preguntas frecuentes
           </h2>
         </div>
@@ -473,19 +471,18 @@ function CtaFinal() {
   return (
     <section className="py-20 sm:py-24">
       <div className="mx-auto max-w-5xl px-4 sm:px-6">
-        <div className="relative overflow-hidden rounded-3xl bg-brand-600 px-6 py-14 text-center sm:px-12">
-          <div className="absolute inset-0 bg-hero-glow opacity-60" />
+        <div className="bg-flow relative overflow-hidden rounded-3xl px-6 py-14 text-center sm:px-12">
           <div className="relative">
-            <h2 className="mx-auto max-w-2xl text-3xl font-bold tracking-tight text-white sm:text-4xl">
+            <h2 className="mx-auto max-w-2xl text-3xl font-semibold tracking-tight text-white sm:text-4xl">
               Empieza a detectar oportunidades hoy
             </h2>
-            <p className="mx-auto mt-4 max-w-xl text-lg text-brand-50">
+            <p className="mx-auto mt-4 max-w-xl text-lg text-white/85">
               Prueba LiciApp 7 días por $4.990 y descubre cuántas licitaciones
               estás dejando pasar.
             </p>
             <Link
               href="/registro"
-              className="mt-8 inline-flex items-center gap-2 rounded-xl bg-white px-6 py-3.5 text-sm font-semibold text-brand-700 shadow-lg transition-transform hover:scale-[1.02]"
+              className="mt-8 inline-flex items-center gap-2 rounded-lg bg-white px-6 py-3.5 text-sm font-semibold text-slate-900 shadow-lg transition-transform hover:scale-[1.02]"
             >
               Probar ahora <ArrowRight size={18} />
             </Link>

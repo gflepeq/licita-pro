@@ -14,7 +14,7 @@ function SubmitButton() {
     <button
       type="submit"
       disabled={pending}
-      className="inline-flex items-center gap-2 rounded-xl bg-brand-600 px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-brand-700 disabled:opacity-60"
+      className="inline-flex items-center gap-2 rounded-lg btn-ink px-6 py-3 text-sm font-semibold transition-colors disabled:opacity-60"
     >
       {pending ? <Loader2 size={16} className="animate-spin" /> : null}
       Empezar a detectar oportunidades
