@@ -154,7 +154,6 @@ export async function saveConfigAction(
   const formData = asFormData(input);
   await requireAdmin();
   await setConfig({
-    nombre_plataforma: String(formData.get("nombre_plataforma") ?? "").trim(),
     anuncio: String(formData.get("anuncio") ?? "").trim(),
     soporte_email: String(formData.get("soporte_email") ?? "").trim(),
     modo_mantenimiento: formData.get("modo_mantenimiento") === "on" ? "1" : "0",

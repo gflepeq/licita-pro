@@ -22,11 +22,9 @@ function Save() {
 }
 
 export function AppearanceForm({
-  appName: appNameInit,
   accent: accentInit,
   theme: themeInit,
 }: {
-  appName: string;
   accent: string;
   theme: "light" | "dark";
 }) {
@@ -36,7 +34,6 @@ export function AppearanceForm({
   );
   const [accent, setAccent] = useState(accentInit);
   const [theme, setTheme] = useState<"light" | "dark">(themeInit);
-  const [appName, setAppName] = useState(appNameInit);
 
   const applyAccent = (key: string) => {
     setAccent(key);
@@ -55,21 +52,10 @@ export function AppearanceForm({
   return (
     <form action={action} className="space-y-5 rounded-2xl border border-line bg-card p-5">
       <div>
-        <h2 className="font-semibold text-ink">Apariencia y marca</h2>
-        <p className="text-sm text-muted">
-          Personaliza el nombre, el color y el tema de la plataforma.
-        </p>
+        <h2 className="font-semibold text-ink">Apariencia</h2>
+        <p className="text-sm text-muted">Elige el color de acento y el tema de la plataforma.</p>
       </div>
 
-      <label className="block">
-        <span className="text-sm font-medium text-ink">Nombre de la plataforma</span>
-        <input
-          name="appName"
-          value={appName}
-          onChange={(e) => setAppName(e.target.value)}
-          className="mt-1.5 w-full max-w-xs rounded-lg border border-line bg-surface px-3 py-2 text-sm text-ink focus:border-brand-400 focus:bg-card focus:outline-none focus:ring-2 focus:ring-brand-100"
-        />
-      </label>
 
       <div>
         <span className="text-sm font-medium text-ink">Color de acento</span>

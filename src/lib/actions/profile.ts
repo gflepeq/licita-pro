@@ -80,9 +80,7 @@ export async function updateAppearanceAction(
   const uid = await requireUserId();
   const theme = formData.get("theme") === "dark" ? "dark" : "light";
   const accent = String(formData.get("accent") ?? "blue");
-  const appName = String(formData.get("appName") ?? "LiciApp").trim() || "LiciApp";
-
-  await updateAppearance(uid, { theme, accent, appName });
+  await updateAppearance(uid, { theme, accent });
 
   // Persiste también en cookies para que el SSR renderice sin parpadeo.
   const { cookies } = await import("next/headers");

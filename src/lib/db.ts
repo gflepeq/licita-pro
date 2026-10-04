@@ -129,9 +129,10 @@ function ready(): Promise<Sql> {
         await c.unsafe("INSERT INTO app_config (clave, valor) VALUES ('mig_cap_adjudicaciones', '1') ON CONFLICT DO NOTHING");
       }
       // Rebrand: Licitapro → LiciApp en datos existentes (idempotente).
-      await c.unsafe("UPDATE settings SET app_name = 'LiciApp' WHERE app_name = 'Licitapro'");
+      // El nombre de la plataforma es fijo: se descartan nombres personalizados previos.
+      await c.unsafe("UPDATE settings SET app_name = 'LiciApp' WHERE app_name <> 'LiciApp'");
       await c.unsafe(
-        "UPDATE app_config SET valor = 'LiciApp' WHERE clave = 'nombre_plataforma' AND valor = 'Licitapro'"
+        "DELETE FROM app_config WHERE clave = 'nombre_plataforma'"
       );
       return c;
     })();
@@ -160,6 +161,9 @@ async function run(sql: string, args: InValue[] = []): Promise<RunResult> {
 }
 
 type InValue = string | number | boolean | null;
+
+/** Nombre de la plataforma (no editable). */
+export const APP_NAME = "LiciApp";
 
 // ---------- Tipos ----------
 export interface UserRow {
@@ -300,7 +304,7 @@ export async function getProfile(userId: number): Promise<UserProfile | null> {
     umbral: n(sr.umbral),
     theme: s(sr.theme) === "dark" ? "dark" : "light",
     accent: s(sr.accent) || "blue",
-    appName: s(sr.app_name) || "LiciApp",
+    appName: APP_NAME, // el nombre de la plataforma es fijo
   };
 }
 
@@ -355,12 +359,11 @@ export async function updateAlerts(
 
 export async function updateAppearance(
   userId: number,
-  data: { theme: "light" | "dark"; accent: string; appName: string }
+  data: { theme: "light" | "dark"; accent: string }
 ) {
-  await run("UPDATE settings SET theme = ?, accent = ?, app_name = ? WHERE user_id = ?", [
+  await run("UPDATE settings SET theme = ?, accent = ? WHERE user_id = ?", [
     data.theme,
     data.accent,
-    data.appName,
     userId,
   ]);
 }

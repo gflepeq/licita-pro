@@ -50,7 +50,6 @@ export default async function ConfiguracionPage({
             regiones={user.regiones}
           />
           <AppearanceForm
-            appName={user.appName}
             accent={user.accent}
             theme={user.theme}
           />

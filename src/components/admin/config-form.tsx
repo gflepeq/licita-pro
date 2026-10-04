@@ -29,11 +29,6 @@ export function ConfigForm({ config }: { config: Record<string, string> }) {
         <h2 className="mb-4 font-semibold text-ink">General</h2>
         <div className="grid gap-4 sm:grid-cols-2">
           <Field
-            label="Nombre de la plataforma"
-            name="nombre_plataforma"
-            defaultValue={config.nombre_plataforma || "LiciApp"}
-          />
-          <Field
             label="Email de soporte"
             name="soporte_email"
             defaultValue={config.soporte_email || "soporte@licitapro.cl"}
