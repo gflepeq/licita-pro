@@ -5,6 +5,7 @@ import { getOportunidad } from "@/lib/oportunidades";
 import { requireUserId } from "@/lib/actions/auth";
 import { currentUser } from "@/lib/current-user";
 import type { Licitacion } from "@/lib/data";
+import { tiposDelPlan } from "@/lib/capacidades";
 
 export async function compraAgilDetalleAction(
   codigo: string
@@ -17,5 +18,6 @@ export async function compraAgilDetalleAction(
 export async function oportunidadDetalleAction(codigo: string): Promise<Licitacion | null> {
   await requireUserId();
   const user = await currentUser();
-  return getOportunidad(codigo, user?.rubros ?? []);
+  const l = await getOportunidad(codigo, user?.rubros ?? []);
+  return l && tiposDelPlan(user?.capacidades ?? []).includes(l.tipo) ? l : null;
 }

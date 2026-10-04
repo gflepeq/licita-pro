@@ -118,6 +118,16 @@ function ready(): Promise<Sql> {
       await c.unsafe(
         "ALTER TABLE users ADD COLUMN IF NOT EXISTS role TEXT NOT NULL DEFAULT 'user'"
       );
+      // Migración única: el módulo Adjudicaciones pasó a ser una capacidad del plan.
+      // Se agrega a los planes pagados existentes (el admin puede quitarla después).
+      const mig = await c.unsafe("SELECT 1 FROM app_config WHERE clave = 'mig_cap_adjudicaciones'");
+      if (!mig.length) {
+        await c.unsafe(
+          `UPDATE plans SET features = (features::jsonb || '["adjudicaciones"]'::jsonb)::text
+           WHERE id IN ('Plan Detecta', 'Plan Gana') AND NOT features::jsonb ? 'adjudicaciones'`
+        );
+        await c.unsafe("INSERT INTO app_config (clave, valor) VALUES ('mig_cap_adjudicaciones', '1') ON CONFLICT DO NOTHING");
+      }
       // Rebrand: Licitapro → LiciApp en datos existentes (idempotente).
       await c.unsafe("UPDATE settings SET app_name = 'LiciApp' WHERE app_name = 'Licitapro'");
       await c.unsafe(
@@ -263,13 +273,12 @@ export async function getProfile(userId: number): Promise<UserProfile | null> {
     .join("");
 
   const esAdmin = s(u.role) === "admin" || isAdminEmail(s(u.email));
-  // Capacidades según el plan. Admin = todas. Plan inexistente = todas (no castigar).
-  const { CAPACIDADES } = await import("@/lib/capacidades");
-  const todas = CAPACIDADES.map((c) => c.key);
-  const planRow = await getPlanById(s(u.plan));
-  // Las capacidades dependen del PLAN (para todos, admin incluido). El rol admin
-  // solo da acceso al panel /admin. Si el plan no existe, no se castiga (todas).
-  const capacidades = planRow ? planRow.features : todas;
+  // Las capacidades dependen del PLAN (para todos, admin incluido); el rol admin
+  // solo da acceso al panel /admin. Si el plan del usuario ya no existe (p. ej.
+  // fue eliminado), se aplica el plan base Trial en vez de dar acceso total.
+  await seedPlansIfEmpty();
+  const planRow = (await getPlanById(s(u.plan))) ?? (await getPlanById("Trial"));
+  const capacidades = planRow ? planRow.features : [];
 
   return {
     id: n(u.id),

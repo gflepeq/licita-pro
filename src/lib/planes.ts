@@ -27,7 +27,7 @@ export const PLANES_SEED: Plan[] = [
     nombre: "Plan Detecta",
     precio: 14990,
     periodo: "/mes",
-    features: ["compra_agil", "busqueda", "filtro_region", "alertas_correo", "resumen_semanal"],
+    features: ["compra_agil", "adjudicaciones", "busqueda", "filtro_region", "alertas_correo", "resumen_semanal"],
     destacado: false,
     activo: true,
     orden: 2,
@@ -40,6 +40,7 @@ export const PLANES_SEED: Plan[] = [
     features: [
       "licitaciones",
       "compra_agil",
+      "adjudicaciones",
       "busqueda",
       "filtro_region",
       "alertas_correo",

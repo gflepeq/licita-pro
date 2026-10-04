@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Bell, Menu, Search, X } from "lucide-react";
 import { Sidebar } from "./sidebar";
+import { PlanProvider } from "./plan-context";
 import { ThemeToggle } from "@/components/theme-toggle";
 import type { SafeUser } from "@/lib/types";
 
@@ -20,6 +21,7 @@ export function DashboardShell({
   const router = useRouter();
 
   return (
+    <PlanProvider capacidades={user.capacidades}>
     <div className="min-h-screen bg-surface dark:bg-slate-950">
       {/* Sidebar fijo en desktop */}
       <aside className="fixed inset-y-0 left-0 z-40 hidden w-64 lg:block">
@@ -92,5 +94,6 @@ export function DashboardShell({
         <main className="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-8">{children}</main>
       </div>
     </div>
+    </PlanProvider>
   );
 }

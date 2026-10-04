@@ -9,6 +9,7 @@ import {
   ExternalLink,
   FileSearch,
   Loader2,
+  Lock,
   MapPin,
   Package,
   Sparkles,
@@ -20,6 +21,7 @@ import {
 import { CierreBadge, EstadoBadge, ScoreBadge, TipoBadge } from "@/components/dashboard/ui";
 import { compraAgilDetalleAction, oportunidadDetalleAction } from "@/lib/actions/detalle";
 import { fmtCLP, fmtFecha, type Licitacion } from "@/lib/data";
+import { usePlan } from "@/components/dashboard/plan-context";
 
 interface CADetalle {
   descripcion: string;
@@ -44,6 +46,7 @@ export function LicitacionModal({
   onToggleSaved?: (l: Licitacion) => void;
   onClose: () => void;
 }) {
+  const { puede } = usePlan();
   // Detalle cargado para un código; si no coincide con la licitación abierta, está cargando.
   const [det, setDet] = useState<{ codigo: string; full: Licitacion | null; ca: CADetalle | null } | null>(null);
 
@@ -259,12 +262,22 @@ export function LicitacionModal({
               </a>
             )}
           </div>
+          {puede("analisis_ia") ? (
           <Link
             href={`/dashboard/analisis?codigo=${encodeURIComponent(l.codigo)}`}
             className="inline-flex items-center gap-2 rounded-lg btn-ink px-4 py-2.5 text-sm font-semibold"
           >
             <FileSearch size={16} /> Analizar con IA
           </Link>
+          ) : (
+            <Link
+              href="/dashboard/configuracion#planes"
+              className="inline-flex items-center gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-2.5 text-sm font-semibold text-amber-700 hover:bg-amber-500/15 dark:text-amber-400"
+              title="El análisis con IA no está incluido en tu plan"
+            >
+              <Lock size={15} /> Análisis IA · Mejorar plan
+            </Link>
+          )}
         </div>
       </div>
     </div>

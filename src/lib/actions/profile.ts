@@ -1,6 +1,7 @@
 "use server";
 
 import { asFormData, type FormInput } from "@/lib/form-input";
+import { currentUser } from "@/lib/current-user";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import {
@@ -60,10 +61,12 @@ export async function updateAlertsAction(
 ): Promise<FormState> {
   const formData = asFormData(input);
   const uid = await requireUserId();
+  // Solo se pueden activar los canales que incluye el plan.
+  const caps = (await currentUser())?.capacidades ?? [];
   await updateAlerts(uid, {
-    alertCorreo: formData.get("alertCorreo") === "on",
-    alertWhatsapp: formData.get("alertWhatsapp") === "on",
-    alertResumen: formData.get("alertResumen") === "on",
+    alertCorreo: caps.includes("alertas_correo") && formData.get("alertCorreo") === "on",
+    alertWhatsapp: caps.includes("alertas_whatsapp") && formData.get("alertWhatsapp") === "on",
+    alertResumen: caps.includes("resumen_semanal") && formData.get("alertResumen") === "on",
     umbral: Number(formData.get("umbral") ?? 75),
   });
   return { ok: true };

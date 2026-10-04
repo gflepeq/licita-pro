@@ -4,7 +4,10 @@ import { ProfileForm } from "@/components/dashboard/profile-form";
 import { AppearanceForm } from "@/components/dashboard/appearance-form";
 import { SubscribePlans } from "@/components/dashboard/subscribe-plans";
 import { currentUser } from "@/lib/current-user";
-import { getPlanes } from "@/lib/db";
+import { getPlanes, listSavedCodes } from "@/lib/db";
+import { CAPACIDADES, LIMITE_GUARDADAS } from "@/lib/capacidades";
+import { Check, Lock } from "lucide-react";
+import Link from "next/link";
 
 export default async function ConfiguracionPage({
   searchParams,
@@ -16,12 +19,18 @@ export default async function ConfiguracionPage({
 
   const { pago } = await searchParams;
   const pagoResultado = pago === "ok" ? "ok" : pago === "error" ? "error" : undefined;
-  const planes = (await getPlanes()).map((p) => ({
+  const todos = await getPlanes();
+  const planes = todos.map((p) => ({
     id: p.id,
     nombre: p.nombre,
     precio: p.precio,
     periodo: p.periodo,
+    features: p.features,
+    destacado: p.destacado,
   }));
+  const planActual = todos.find((p) => p.id === user.plan);
+  const guardadas = (await listSavedCodes(user.id)).length;
+  const ilimitadas = user.capacidades.includes("guardadas_ilimitadas");
 
   return (
     <div>
@@ -47,22 +56,46 @@ export default async function ConfiguracionPage({
           />
         </div>
 
-        <div className="h-fit rounded-2xl border border-line bg-card p-5">
+        <div className="card h-fit p-5">
           <h2 className="font-semibold text-ink">Tu plan</h2>
-          <div className="mt-3 rounded-xl bg-brand-50 p-4 dark:bg-brand-950/40">
-            <p className="text-lg font-bold text-brand-700 dark:text-brand-300">
-              {user.plan}
-            </p>
-            <p className="mt-1 text-sm text-muted">
-              Acceso a detección y análisis con IA.
-            </p>
+          <div className="bg-flow mt-3 rounded-xl p-4 text-white">
+            <p className="text-lg font-semibold">{planActual?.nombre ?? user.plan}</p>
+            {planActual && (
+              <p className="mt-0.5 text-sm text-white/85">
+                ${planActual.precio.toLocaleString("es-CL")} {planActual.periodo}
+              </p>
+            )}
           </div>
-          <ul className="mt-4 space-y-2 text-sm text-muted">
-            <li>· Detección ilimitada con IA</li>
-            <li>· Análisis de bases ilimitado</li>
-            <li>· Alertas por WhatsApp</li>
-            <li>· Soporte prioritario</li>
+          <ul className="mt-4 space-y-2 text-sm">
+            {CAPACIDADES.map((c) => {
+              const ok = user.capacidades.includes(c.key);
+              return (
+                <li key={c.key} className={`flex items-start gap-2 ${ok ? "text-ink/85" : "text-muted"}`}>
+                  {ok ? (
+                    <Check size={15} className="mt-0.5 shrink-0 text-accent-600" />
+                  ) : (
+                    <Lock size={14} className="mt-0.5 shrink-0" />
+                  )}
+                  {c.label}
+                </li>
+              );
+            })}
           </ul>
+          <p className="mt-4 rounded-lg bg-surface px-3 py-2 text-xs text-muted">
+            Oportunidades guardadas:{" "}
+            <span className="num font-semibold text-ink">
+              {guardadas}
+              {ilimitadas ? "" : ` de ${LIMITE_GUARDADAS}`}
+            </span>
+          </p>
+          {user.capacidades.length < CAPACIDADES.length && (
+            <Link
+              href="#planes"
+              className="mt-3 block rounded-lg btn-ink px-3 py-2 text-center text-xs font-semibold"
+            >
+              Ver planes con más funciones
+            </Link>
+          )}
         </div>
       </div>
 

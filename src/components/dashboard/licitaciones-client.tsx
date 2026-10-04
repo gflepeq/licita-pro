@@ -274,6 +274,17 @@ export function LicitacionesClient({
         {pending && <Loader2 size={16} className="ml-1 animate-spin text-brand-600" />}
       </div>
 
+      {/* Tipos fuera del plan */}
+      {!tiposPermitidos.includes("Licitación") && (
+        <PlanLock
+          className="mb-4"
+          texto="Las licitaciones públicas (L1, LE, LP y más) están disponibles en planes superiores. Tu plan incluye Compras Ágiles."
+        />
+      )}
+      {!tiposPermitidos.includes("Compra Ágil") && (
+        <PlanLock className="mb-4" texto="Las Compras Ágiles están disponibles en otros planes." />
+      )}
+
       {/* Resultados */}
       <div className={`transition-opacity ${pending ? "opacity-60" : ""}`}>
         {resultado.items.length === 0 ? (

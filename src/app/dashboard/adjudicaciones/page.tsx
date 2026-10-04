@@ -5,12 +5,25 @@ import { PageHeader, StatCard } from "@/components/dashboard/ui";
 import { fmtCLP, fmtFecha } from "@/lib/data";
 import { currentUser } from "@/lib/current-user";
 import { getAdjudicacionesByRut } from "@/lib/mercadopublico";
+import { PlanLock } from "@/components/dashboard/plan-lock";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdjudicacionesPage() {
   const user = await currentUser();
   if (!user) redirect("/login");
+
+  if (!user.capacidades.includes("adjudicaciones")) {
+    return (
+      <div>
+        <PageHeader
+          title="Adjudicaciones"
+          subtitle="Tus órdenes de compra reales en Mercado Público: a quién le vendiste, cuánto y cuándo."
+        />
+        <PlanLock texto="El seguimiento de adjudicaciones está disponible en planes superiores." />
+      </div>
+    );
+  }
 
   const data = await getAdjudicacionesByRut(user.rut);
 

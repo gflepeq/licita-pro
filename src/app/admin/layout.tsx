@@ -25,6 +25,7 @@ export default async function AdminLayout({
     accent: user.accent,
     theme: user.theme,
     isAdmin: user.isAdmin,
+    capacidades: user.capacidades,
   };
 
   return <AdminShell user={safe}>{children}</AdminShell>;

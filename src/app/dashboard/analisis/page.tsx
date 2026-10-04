@@ -9,6 +9,7 @@ import { listSaved } from "@/lib/db";
 import { getOportunidad, getOportunidades } from "@/lib/oportunidades";
 import { iaDisponible } from "@/lib/ia";
 import type { Licitacion } from "@/lib/data";
+import { tiposDelPlan } from "@/lib/capacidades";
 
 export const dynamic = "force-dynamic";
 
@@ -32,13 +33,16 @@ export default async function AnalisisPage({ searchParams }: { searchParams: Pro
   }
 
   const { codigo } = await searchParams;
-  const l = codigo ? await getOportunidad(codigo, user.rubros) : null;
+  const encontrada = codigo ? await getOportunidad(codigo, user.rubros) : null;
+  const l = encontrada && tiposDelPlan(user.capacidades).includes(encontrada.tipo) ? encontrada : null;
   if (l) return <AnalisisClient licitacion={l} disponible={iaDisponible()} />;
 
   // Sin oportunidad elegida: sugerimos las guardadas.
   const guardadas = (await listSaved(user.id)) as Licitacion[];
   const actuales = await getOportunidades(guardadas.map((g) => g.codigo), user.rubros);
-  const abiertas = actuales.filter((x) => x.estado === "Publicada");
+  const abiertas = actuales.filter(
+    (x) => x.estado === "Publicada" && tiposDelPlan(user.capacidades).includes(x.tipo)
+  );
 
   return (
     <div>

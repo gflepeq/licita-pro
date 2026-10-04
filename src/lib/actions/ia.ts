@@ -2,6 +2,7 @@
 
 import { currentUser } from "@/lib/current-user";
 import { getOportunidad } from "@/lib/oportunidades";
+import { tiposDelPlan } from "@/lib/capacidades";
 import {
   analizarOportunidad,
   iaDisponible,
@@ -19,6 +20,8 @@ async function contexto(codigo: string) {
   if (!iaDisponible()) throw new Error("El análisis con IA aún no está configurado en el servidor.");
   const l = await getOportunidad(codigo, user.rubros);
   if (!l) throw new Error("No encontramos esa oportunidad en el catálogo.");
+  if (!tiposDelPlan(user.capacidades).includes(l.tipo))
+    throw new Error(`Tu plan no incluye ${l.tipo === "Licitación" ? "licitaciones" : "compras ágiles"}.`);
   return { l, perfil: { empresa: user.empresa, rubros: user.rubros, regiones: user.regiones } };
 }
 

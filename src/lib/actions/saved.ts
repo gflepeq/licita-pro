@@ -6,8 +6,7 @@ import { requireUserId } from "@/lib/actions/auth";
 import { currentUser } from "@/lib/current-user";
 import type { Licitacion } from "@/lib/data";
 
-// Límite de oportunidades guardadas para planes sin "guardadas_ilimitadas".
-const LIMITE_GUARDADAS = 15;
+import { LIMITE_GUARDADAS } from "@/lib/capacidades";
 
 export async function toggleSavedAction(
   licitacion: Licitacion

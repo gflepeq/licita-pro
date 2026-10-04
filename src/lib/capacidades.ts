@@ -11,6 +11,7 @@ export interface Capacidad {
 export const CAPACIDADES: Capacidad[] = [
   { key: "licitaciones", label: "Acceso a Licitaciones", grupo: "Oportunidades" },
   { key: "compra_agil", label: "Acceso a Compras Ágiles", grupo: "Oportunidades" },
+  { key: "adjudicaciones", label: "Seguimiento de adjudicaciones", grupo: "Oportunidades" },
   { key: "filtro_region", label: "Filtro por región", grupo: "Filtros" },
   { key: "busqueda", label: "Búsqueda en Mercado Público", grupo: "Filtros" },
   { key: "alertas_correo", label: "Alertas por correo", grupo: "Alertas" },
@@ -23,3 +24,20 @@ export const CAPACIDADES: Capacidad[] = [
 
 export const capacidadLabel = (key: string): string =>
   CAPACIDADES.find((c) => c.key === key)?.label ?? key;
+
+/** Módulos del dashboard que dependen de una capacidad del plan. */
+export const MODULO_CAPACIDAD: Record<string, string> = {
+  "/dashboard/analisis": "analisis_ia",
+  "/dashboard/adjudicaciones": "adjudicaciones",
+};
+
+/** Límite de oportunidades guardadas para planes sin "guardadas_ilimitadas". */
+export const LIMITE_GUARDADAS = 15;
+
+/** Tipos de oportunidad que permite el plan. */
+export function tiposDelPlan(caps: string[]): string[] {
+  const t: string[] = [];
+  if (caps.includes("licitaciones")) t.push("Licitación");
+  if (caps.includes("compra_agil")) t.push("Compra Ágil");
+  return t;
+}

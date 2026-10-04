@@ -3,6 +3,7 @@ import { LicitacionesClient } from "@/components/dashboard/licitaciones-client";
 import { currentUser } from "@/lib/current-user";
 import { buscarOportunidades, type Orden } from "@/lib/oportunidades";
 import { listSavedCodes } from "@/lib/db";
+import { tiposDelPlan } from "@/lib/capacidades";
 
 export const dynamic = "force-dynamic";
 
@@ -24,9 +25,7 @@ export default async function LicitacionesPage({ searchParams }: { searchParams:
   const caps = user.capacidades;
 
   // Enforcement por plan: tipos, búsqueda y filtro por región.
-  const tiposPermitidos: string[] = [];
-  if (caps.includes("licitaciones")) tiposPermitidos.push("Licitación");
-  if (caps.includes("compra_agil")) tiposPermitidos.push("Compra Ágil");
+  const tiposPermitidos = tiposDelPlan(caps);
   const puedeBuscar = caps.includes("busqueda");
   const puedeRegion = caps.includes("filtro_region");
 

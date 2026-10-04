@@ -8,6 +8,7 @@ import { currentUser } from "@/lib/current-user";
 import { buscarOportunidades, resumenCatalogo } from "@/lib/oportunidades";
 import { listSavedCodes } from "@/lib/db";
 import { diasRestantes, fmtCLPCorto } from "@/lib/data";
+import { LIMITE_GUARDADAS, tiposDelPlan } from "@/lib/capacidades";
 
 export const dynamic = "force-dynamic";
 
@@ -25,9 +26,7 @@ export default async function DashboardHome() {
   const user = await currentUser();
   if (!user) redirect("/login");
 
-  const tipos: string[] = [];
-  if (user.capacidades.includes("licitaciones")) tipos.push("Licitación");
-  if (user.capacidades.includes("compra_agil")) tipos.push("Compra Ágil");
+  const tipos = tiposDelPlan(user.capacidades);
 
   // Una sola consulta: todas las abiertas del plan, ya ordenadas por relevancia.
   const [resumen, todas, saved] = await Promise.all([
@@ -91,7 +90,11 @@ export default async function DashboardHome() {
           icon={Bookmark}
           label="Guardadas"
           value={nf.format(saved.length)}
-          hint="en seguimiento"
+          hint={
+            user.capacidades.includes("guardadas_ilimitadas")
+              ? "en seguimiento"
+              : `de ${LIMITE_GUARDADAS} incluidas en tu plan`
+          }
           tone="violet"
         />
       </div>

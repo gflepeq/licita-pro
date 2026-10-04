@@ -8,12 +8,15 @@ import {
   FileSearch,
   LayoutDashboard,
   ListChecks,
+  Lock,
   LogOut,
   Settings,
   Shield,
   Trophy,
 } from "lucide-react";
 import { Logo } from "@/components/logo";
+import { MODULO_CAPACIDAD } from "@/lib/capacidades";
+import { usePlan } from "./plan-context";
 import { logoutAction } from "@/lib/actions/auth";
 import type { SafeUser } from "@/lib/types";
 
@@ -38,12 +41,15 @@ export function Sidebar({
   onNavigate?: () => void;
 }) {
   const pathname = usePathname();
+  const { puede } = usePlan();
 
   const item = (l: (typeof links)[number]) => {
     const active =
       l.href === "/dashboard"
         ? pathname === "/dashboard"
         : pathname.startsWith(l.href);
+    // Módulo fuera del plan: se ve, pero con candado (al entrar ofrece mejorar el plan).
+    const bloqueado = !!MODULO_CAPACIDAD[l.href] && !puede(MODULO_CAPACIDAD[l.href]);
     return (
       <Link
         key={l.href}
@@ -56,7 +62,17 @@ export function Sidebar({
         }`}
       >
         <l.icon size={18} />
-        {l.label}
+        <span className="flex-1">{l.label}</span>
+        {bloqueado && (
+          <span
+            className={`inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${
+              active ? "bg-white/15" : "bg-amber-500/10 text-amber-700 dark:text-amber-400"
+            }`}
+            title="No incluido en tu plan"
+          >
+            <Lock size={10} /> Mejorar
+          </span>
+        )}
       </Link>
     );
   };
